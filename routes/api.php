@@ -4,24 +4,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
+// ================= Public Routes (لا تحتاج توكن) =================
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-Route::middleware('auth:sanctum')->post('/logout', [App\Http\Controllers\AuthController::class, 'logout']);
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// ================= Protected Routes (تحتاج Bearer Token) =================
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // عرض بيانات المستخدم
+    Route::get('/user', [AuthController::class, 'userProfile']);
+    
+    // تعديل بيانات المستخدم
+    Route::put('/user/update', [AuthController::class, 'updateProfile']);
+    
+    // تسجيل الخروج
+    Route::post('/logout', [AuthController::class, 'logout']);
 });

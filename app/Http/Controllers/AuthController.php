@@ -67,71 +67,85 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= Forgot Password =================
+    // ================= User Profile (جديد) =================
+    public function userProfile(Request $request)
+    {
+        // الدالة دي بترجع بيانات المستخدم صاحب التوكن الحالي
+        return response()->json([
+            'status' => 'success',
+            'user' => $request->user()
+        ], 200);
+    }
+
+    // ================= Update Profile (جديد) =================
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|string|email|unique:users,email,' . $user->id,
+        ]);
+
+        // تحديث البيانات اللي اتبعتت بس
+        if ($request->has('name')) $user->name = $request->name;
+        if ($request->has('email')) $user->email = $request->email;
+        
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user
+        ], 200);
+    }
+
+    // ================= Forgot Password (OTP) =================
     public function forgotPassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email|exists:users,email'
         ]);
 
-        $token = rand(100000, 999999); // 6-digit code
-        $hashedToken = Hash::make($token); // hash it before storing
-        $expiresAt = Carbon::now()->addMinutes(15); // 15 minutes expiration
+        $otp = rand(100000, 999999);
+        $hashedOtp = Hash::make($otp);
+        $expiresAt = Carbon::now()->addMinutes(15);
 
-        DB::table('password_reset_tokens')->updateOrInsert(
+        DB::table('otps')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => $hashedToken,
+                'otp' => $hashedOtp,
+                'expires_at' => $expiresAt,
                 'created_at' => Carbon::now(),
-                'expires_at' => $expiresAt
+                'updated_at' => Carbon::now()
             ]
         );
 
-        // هنا بدل ما نرجع الكود في الـ response، يبقى المفروض نبعته في email أو SMS
-        // للعرض دلوقتي ممكن نرسل رسالة تجريبية:
-        // Mail::to($request->email)->send(new ResetCodeMail($token));
-
         return response()->json([
-            'message' => 'Reset code sent to your email'
+            'message' => 'OTP generated successfully',
+            'otp_test' => $otp // للتيست فقط في Postman
         ]);
     }
 
-    // ================= Reset Password =================
+    // ================= Reset Password (Verify OTP) =================
     public function resetPassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
-            'token' => 'required',
+            'otp' => 'required',
             'password' => 'required|min:6|confirmed'
         ]);
 
-        $record = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->first();
+        $record = DB::table('otps')->where('email', $request->email)->first();
 
-        if (!$record) {
-            return response()->json(['message' => 'Invalid reset request'], 400);
+        if (!$record || !Hash::check($request->otp, $record->otp) || Carbon::now()->gt($record->expires_at)) {
+            return response()->json(['message' => 'Invalid or expired OTP'], 400);
         }
 
-        // تحقق من صلاحية الكود (15 دقيقة)
-        if (Carbon::now()->gt(Carbon::parse($record->expires_at))) {
-            return response()->json(['message' => 'Reset code expired'], 400);
-        }
-
-        // تحقق من صحة الكود
-        if (!Hash::check($request->token, $record->token)) {
-            return response()->json(['message' => 'Invalid reset code'], 400);
-        }
-
-        // غيّر الباسورد
         $user = User::where('email', $request->email)->first();
         $user->password = Hash::make($request->password);
         $user->save();
 
-        // احذف السجل بعد الاستخدام
-        DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->delete();
+        DB::table('otps')->where('email', $request->email)->delete();
 
         return response()->json([
             'message' => 'Password reset successful'
