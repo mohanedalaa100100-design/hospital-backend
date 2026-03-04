@@ -23,6 +23,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'is_admin' => false, // أي حد بيسجل من الموبايل بيبقى يوزر عادي
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -48,11 +49,15 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
+        // --- التعديل هنا: مسح جميع التوكنز القديمة قبل إصدار واحد جديد ---
+        $user->tokens()->delete(); 
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'is_admin' => (bool) $user->is_admin, // مهمة جداً للفرونت إند
             'user' => $user
         ], 200);
     }
@@ -60,6 +65,7 @@ class AuthController extends Controller
     // ================= Logout =================
     public function logout(Request $request)
     {
+        // مسح التوكن الحالي فقط
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -67,17 +73,16 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= User Profile (جديد) =================
+    // ================= User Profile =================
     public function userProfile(Request $request)
     {
-        // الدالة دي بترجع بيانات المستخدم صاحب التوكن الحالي
         return response()->json([
             'status' => 'success',
             'user' => $request->user()
         ], 200);
     }
 
-    // ================= Update Profile (جديد) =================
+    // ================= Update Profile =================
     public function updateProfile(Request $request)
     {
         $user = $request->user();
@@ -85,11 +90,12 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|string|email|unique:users,email,' . $user->id,
+            'phone' => 'sometimes|string|unique:users,phone,' . $user->id,
         ]);
 
-        // تحديث البيانات اللي اتبعتت بس
         if ($request->has('name')) $user->name = $request->name;
         if ($request->has('email')) $user->email = $request->email;
+        if ($request->has('phone')) $user->phone = $request->phone;
         
         $user->save();
 
@@ -126,7 +132,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // ================= Reset Password (Verify OTP) =================
+    // ================= Reset Password =================
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -145,7 +151,9 @@ class AuthController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
+        // مسح الـ OTP بعد الاستخدام ومسح التوكنز القديمة لزيادة الأمان
         DB::table('otps')->where('email', $request->email)->delete();
+        $user->tokens()->delete();
 
         return response()->json([
             'message' => 'Password reset successful'

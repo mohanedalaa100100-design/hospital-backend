@@ -15,8 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone')->unique()->nullable(); // ضفنا التليفون عشان الطوارئ
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            
+            // --- الخانة السحرية للأدمن ---
+            $table->boolean('is_admin')->default(false); 
+            // false (0) = مستخدم عادي
+            // true (1) = مدير نظام (أدمن)
+            
             $table->rememberToken();
             $table->timestamps();
         });
