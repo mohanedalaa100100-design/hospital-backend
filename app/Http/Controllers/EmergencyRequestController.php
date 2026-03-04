@@ -12,12 +12,19 @@ class EmergencyRequestController extends Controller
 {
     public function sendRequest(Request $request)
     {
-        // 1. استلام موقع المريض الحالي
+        // 1. التأكد من إرسال الإحداثيات بشكل صحيح
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+            'note' => 'nullable|string'
+        ]);
+
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        // 2. معادلة الـ Haversine للبحث عن أقرب مستشفى (نصف قطر 50 كم مثلاً)
-        $nearestHospital = Hospital::select('id', 'name', DB::raw("
+        // 2. معادلة الـ Haversine للبحث عن أقرب مستشفى
+        // بنختار الاسم واللوكيشن والمسافة (6371 هي نصف قطر الأرض بالكيلومتر)
+        $nearestHospital = Hospital::select('id', 'name', 'latitude', 'longitude', 'address', DB::raw("
             (6371 * acos(cos(radians($userLat)) 
             * cos(radians(latitude)) 
             * cos(radians(longitude) - radians($userLng)) 
@@ -25,28 +32,38 @@ class EmergencyRequestController extends Controller
             * sin(radians(latitude)))) AS distance
         "))
         ->orderBy('distance', 'asc')
-        ->first(); // بناخد أول واحدة اللي هي الأقرب
+        ->first();
 
+        // 3. لو مفيش مستشفيات في الداتابيز أصلاً
         if (!$nearestHospital) {
-            return response()->json(['message' => 'عذراً، لا توجد مستشفيات قريبة متاحة حالياً'], 404);
+            return response()->json([
+                'status' => false,
+                'message' => 'عذراً، لا توجد مستشفيات مسجلة في النظام حالياً'
+            ], 404);
         }
 
-        // 3. تسجيل الطلب في الجدول الجديد
+        // 4. تسجيل طلب الاستغاثة في قاعدة البيانات (للمتابعة لاحقاً)
         $emergency = EmergencyRequest::create([
-            'user_id' => Auth::id(),
+            'user_id'     => Auth::id(),
             'hospital_id' => $nearestHospital->id,
-            'user_lat' => $userLat,
-            'user_lng' => $userLng,
-            'status' => 'pending',
-            'note' => $request->note ?? 'طلب استغاثة طارئ'
+            'user_lat'    => $userLat,
+            'user_lng'    => $userLng,
+            'status'      => 'pending',
+            'note'        => $request->note ?? 'طلب استغاثة طارئ من التطبيق'
         ]);
 
+        // 5. الرد النهائي للفرونت إند بكل المعلومات اللي يحتاجها
         return response()->json([
             'status' => true,
-            'message' => 'تم إرسال طلبك بنجاح لأقرب مستشفى',
-            'hospital' => $nearestHospital->name,
-            'distance_km' => round($nearestHospital->distance, 2),
-            'request_details' => $emergency
+            'message' => 'تم تحديد أقرب مستشفى وإرسال طلبك',
+            'hospital_details' => [
+                'name'     => $nearestHospital->name,
+                'address'  => $nearestHospital->address,
+                'lat'      => $nearestHospital->latitude,
+                'lng'      => $nearestHospital->longitude,
+                'distance' => round($nearestHospital->distance, 2) . ' KM'
+            ],
+            'request_id' => $emergency->id
         ], 201);
     }
 }

@@ -13,19 +13,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. تكريت مستخدم "أدمن" (ليه صلاحية يضيف ويمسح مستشفيات)
-        User::updateOrCreate(
+        // التعديل اللي عملناه: استخدام updateOrCreate عشان لو رنيت السدر 100 مرة ميكررش البيانات
+        
+        // 1. تكريت مستخدم "أدمن"
+        $admin = User::updateOrCreate(
             ['email' => 'admin@hospital.com'],
             [
                 'name' => 'System Admin',
                 'phone' => '01012345678',
-                'password' => Hash::make('admin123'), // الباسورد اللي هتدخل بيه
-                'is_admin' => true, // الخانة اللي بتفتحه الـ Middleware
+                'password' => Hash::make('admin123'),
+                'is_admin' => true,
             ]
         );
+        // حركة صايعة: بنمسح أي توكنز قديمة للأدمن عشان يبدأ على نظافة
+        $admin->tokens()->delete();
 
-        // 2. تكريت مستخدم "عادي" (للتجربة كأنه مريض)
-        User::updateOrCreate(
+        // 2. تكريت مستخدم "عادي"
+        $user = User::updateOrCreate(
             ['email' => 'user@gmail.com'],
             [
                 'name' => 'Normal User',
@@ -34,11 +38,12 @@ class DatabaseSeeder extends Seeder
                 'is_admin' => false,
             ]
         );
+        $user->tokens()->delete();
 
-        // 3. استدعاء سدرز المستشفيات بالترتيب الصح
+        // 3. استدعاء سدرز المستشفيات
         $this->call([
-            HospitalSeeder::class,        // يكريت المستشفيات الأساسية
-            HospitalDetailsSeeder::class, // يضيف التخصصات والخدمات للمستشفيات اللي اتكريتت
+            HospitalSeeder::class,
+            HospitalDetailsSeeder::class,
         ]);
     }
 }
