@@ -11,10 +11,15 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    /**
+     * الخانات اللي مسموح نكتب فيها بيانات مرة واحدة (Mass Assignment)
+     */
     protected $fillable = [
         'name',
         'email',
+        'phone',    // الحقل الجديد اللي ضفناه عشان الطوارئ والـ OTP
         'password',
+        'is_admin', // عشان نقدر نحدد مين الأدمن ومين اليوزر العادي
     ];
 
     protected $hidden = [
@@ -25,6 +30,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_admin' => 'boolean', // عشان لارافيل يرجعها true/false بدل 1/0
     ];
 
     /**
