@@ -12,30 +12,36 @@ class Hospital extends Model
     protected $fillable = [
         'name',
         'address',
+        'phone',
+        'type',
         'image_url',
         'lat',
         'lng',
+        'emergency_days',
+        'is_active',
         'is_featured',
-        'rating',            // التقييم (زي 4.2)
-        'accreditation',     // الاعتماد (JCI)
-        'whatsapp',          // رقم الواتساب
-        'working_hours',     // مواعيد العمل
-        'about'              // نص الترحيب
+
+        // optional fields
+        'rating',
+        'accreditation',
+        'whatsapp',
+        'working_hours',
+        'about'
     ];
 
     /**
-     * علاقة المستشفى بالتخصصات (One-to-Many)
+     * علاقة Many To Many مع التخصصات 🔥
      */
     public function specialties()
     {
-        return $this->hasMany(specialty::class);
+        return $this->belongsToMany(Specialty::class);
     }
 
     /**
-     * علاقة المستشفى بالخدمات الطبية (One-to-Many)
+     * علاقة الخدمات الطبية (ممكن تسيبها زي ما هي)
      */
     public function medicalServices()
     {
-        return $this->hasMany(medicalservice::class);
+        return $this->hasMany(MedicalService::class);
     }
 }

@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\Auth;
 
 class MedicalProfileController extends Controller
 {
-    // عرض البيانات (عشان شاشة الـ Yes)
+    /**
+     * عرض البيانات (عشان شاشة الـ Yes)
+     */
     public function show()
     {
-        // بنستخدم Eager Loading عشان نجيب الداتا بسرعة
+        // بنستخدم العلاقة اللي بين اليوزر والبروفايل الطبي
         $profile = Auth::user()->medicalProfile;
 
         if (!$profile) {
@@ -23,32 +25,41 @@ class MedicalProfileController extends Controller
 
         return response()->json([
             'status' => true, 
+            'message' => 'Medical profile retrieved successfully',
             'data' => $profile
         ], 200);
     }
 
-    // حفظ أو تعديل البيانات (عشان شاشة الـ No وزرار Edit)
+    /**
+     * حفظ أو تعديل البيانات (عشان شاشة الـ No وزرار Edit)
+     */
     public function store(Request $request)
     {
-        // 1. مرحلة الـ Validation: عشان نضمن إن الداتا أنواعها صح
+        // 1. مرحلة الـ Validation: تأكد إن الداتا مطابقة لمتطلبات الطوارئ
         $request->validate([
-            'full_name'        => 'required|string|max:255',
-            'age'              => 'required|integer|min:1|max:120',
-            'gender'           => 'required|string|in:male,female',
-            'blood_type'       => 'required|string',
-            'chronic_diseases' => 'nullable|string',
-            'allergies'        => 'nullable|string',
-            'special_condition'=> 'nullable|string',
+            'full_name'         => 'required|string|max:255',
+            'age'               => 'required|integer|min:1|max:120',
+            'gender'            => 'required|string|in:male,female',
+            'blood_type'        => 'required|string',
+            'chronic_diseases'  => 'nullable|string',
+            'allergies'         => 'nullable|string',
+            'special_condition' => 'nullable|string',
+            'emergency_phone'   => 'nullable|string', // إضافة رقم طوارئ إضافي
         ]);
 
-        // 2. مرحلة الحفظ: updateOrCreate بتدور بالـ user_id
-        // لو لقت بروفايل بتعدله، ولو ملقتش بتعمل New Record
+        // 2. مرحلة الحفظ: استخدام updateOrCreate لضمان وجود سجل واحد لكل مستخدم
         $profile = MedicalProfile::updateOrCreate(
-            ['user_id' => Auth::id()], // شرط البحث
-            $request->only([           // البيانات اللي مسموح تدخل
-                'full_name', 'age', 'gender', 'blood_type', 
-                'chronic_diseases', 'allergies', 'special_condition'
-            ])
+            ['user_id' => Auth::id()], // شرط البحث بالـ User ID الخاص بالتوكن
+            [
+                'full_name'         => $request->full_name,
+                'age'               => $request->age,
+                'gender'            => $request->gender,
+                'blood_type'        => $request->blood_type,
+                'chronic_diseases'  => $request->chronic_diseases,
+                'allergies'         => $request->allergies,
+                'special_condition' => $request->special_condition,
+                'emergency_phone'   => $request->emergency_phone,
+            ]
         );
 
         return response()->json([

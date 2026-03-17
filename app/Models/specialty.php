@@ -5,24 +5,30 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class specialty extends Model
+class Specialty extends Model
 {
     use HasFactory;
 
     protected $table = 'specialties'; 
 
-    // السماح بإضافة البيانات دي لقاعدة البيانات
     protected $fillable = [
-        'hospital_id',
         'name',
         'icon_url'
     ];
 
     /**
-     * علاقة التخصص بالمستشفى (كل تخصص ينتمي لمستشفى واحدة)
+     * علاقة Many To Many مع المستشفيات
      */
-    public function hospital()
+    public function hospitals()
     {
-        return $this->belongsTo(Hospital::class);
+        return $this->belongsToMany(Hospital::class);
+    }
+
+    /**
+     * علاقة التخصص بالدكاترة (One To Many)
+     */
+    public function doctors()
+    {
+        return $this->hasMany(Doctor::class, 'specialty_id');
     }
 }

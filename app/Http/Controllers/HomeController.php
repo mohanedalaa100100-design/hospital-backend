@@ -10,7 +10,8 @@ use App\Models\QuickAction;
 class HomeController extends Controller
 {
     /**
-     * 1. الدالة الأساسية للصفحة الرئيسية
+     * شاشة الهوم (PointCare Home)
+     * بترجع السلايدر، الأزرار السريعة، والمستشفيات المميزة
      */
     public function index()
     {
@@ -18,49 +19,29 @@ class HomeController extends Controller
             'status' => true,
             'message' => 'Home page data retrieved successfully',
             'data' => [
-                'hero_section'  => herosection::first(),
-                'quick_actions' => QuickAction::all(),
-                'hospitals'     => Hospital::where('is_featured', true)->take(6)->get()
+                'hero_section'       => herosection::all(), // جلب كل السلايدز للـ Carousel
+                'quick_actions'      => QuickAction::all(),
+                'featured_hospitals' => Hospital::with(['specialties'])
+                                        ->where('is_featured', true)
+                                        ->take(6)
+                                        ->get()
             ]
         ], 200);
     }
 
     /**
-     * 2. ميزة البحث (Search API)
-     * بتبحث في الاسم أو العنوان بناءً على كلمة بيبعتها المستخدم
-     */
-    public function search(Request $request)
-    {
-        $query = $request->get('query');
-
-        if (!$query) {
-            return response()->json([
-                'status' => false,
-                'message' => 'برجاء إدخال كلمة للبحث'
-            ], 400);
-        }
-
-        $hospitals = Hospital::where('name', 'LIKE', "%{$query}%")
-                    ->orWhere('address', 'LIKE', "%{$query}%")
-                    ->get();
-
-        return response()->json([
-            'status' => true,
-            'count' => $hospitals->count(),
-            'data' => $hospitals
-        ], 200);
-    }
-
-    /**
-     * 3. عرض تفاصيل مستشفى محددة (Dynamic Details)
+     * شاشة تفاصيل المستشفى (Hospital Details)
+     * دي اللي بتربط صفحة "دار الفؤاد" بكل خدماتها وتخصصاتها
      */
     public function show($id)
     {
-        $hospital = Hospital::with(['specialties', 'medicalServices'])->find($id);
+        // بنجيب المستشفى بكل العلاقات اللي الفرونت محتاجها في شاشة واحدة
+        $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])
+                            ->find($id);
 
         if (!$hospital) {
             return response()->json([
-                'status' => false,
+                'status' => false, 
                 'message' => 'المستشفى غير موجودة'
             ], 404);
         }
@@ -72,28 +53,77 @@ class HomeController extends Controller
         ], 200);
     }
 
-    // 4. جلب كل المستشفيات
-    public function allHospitals()
+    /**
+     * البحث المتقدم (Search & Filter)
+     * بيبحث بالاسم، العنوان، أو التخصص
+     */
+    public function search(Request $request)
     {
+        $query = $request->get('query');
+
+        if (!$query) {
+            return response()->json(['status' => false, 'message' => 'برجاء إدخال كلمة للبحث'], 400);
+        }
+
+        $hospitals = Hospital::where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('address', 'LIKE', "%{$query}%")
+                    ->orWhereHas('specialties', function($q) use ($query) {
+                        $q->where('name', 'LIKE', "%{$query}%");
+                    })
+                    ->with(['specialties', 'medicalServices'])
+                    ->get();
+
         return response()->json([
-            'hospitals' => Hospital::all()
+            'status' => true,
+            'count'  => $hospitals->count(),
+            'data'   => $hospitals
         ], 200);
     }
 
-    // 5. ميزة الطوارئ: إيجاد أقرب مستشفى
+    /**
+     * شاشة المستشفيات القريبة (Nearby Hospitals)
+     * بتستخدم معادلة Haversine لحساب المسافة الجغرافية
+     */
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
         $userLng = $request->lng;
 
-        $nearestHospital = Hospital::selectRaw("*, 
+        if (!$userLat || !$userLng) {
+            return response()->json([
+                'status' => false, 
+                'message' => 'Coordinates (lat, lng) are required'
+            ], 400);
+        }
+
+        // حساب المسافة وترتيب المستشفيات النشطة فقط
+        $nearestHospitals = Hospital::selectRaw("*, 
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
+            ->where('is_active', true)
+            ->with(['specialties']) // عشان يظهر الأيقونات تحت اسم المستشفى في اللستة
             ->orderBy('distance')
-            ->first();
+            ->take(50) 
+            ->get();
 
         return response()->json([
-            'nearest_hospital' => $nearestHospital
+            'status' => true,
+            'message' => 'Nearest hospitals retrieved successfully',
+            'data' => $nearestHospitals
+        ], 200);
+    }
+
+    /**
+     * عرض كل المستشفيات (Explore All)
+     */
+    public function allHospitals()
+    {
+        $hospitals = Hospital::with(['specialties', 'medicalServices'])->get();
+        
+        return response()->json([
+            'status' => true,
+            'count' => $hospitals->count(),
+            'data' => $hospitals
         ], 200);
     }
 }

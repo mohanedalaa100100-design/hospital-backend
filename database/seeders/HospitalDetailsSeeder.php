@@ -4,56 +4,64 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Hospital;
-use App\Models\specialty;
-use App\Models\medicalservice;
+use App\Models\Specialty;      
+use App\Models\MedicalService; 
 
 class HospitalDetailsSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. هنجيب كل المستشفيات اللي إنت ضفتها قبل كدة
         $hospitals = Hospital::all();
 
-        // 2. قائمة بتخصصات متنوعة عشان نوزعها
+        if ($hospitals->isEmpty()) {
+            return;
+        }
+
         $specialtiesList = [
             ['name' => 'Cardiology', 'icon' => 'cardio.png'],
             ['name' => 'Orthopedics', 'icon' => 'ortho.png'],
             ['name' => 'Neurology', 'icon' => 'neuro.png'],
             ['name' => 'Pediatrics', 'icon' => 'pedia.png'],
-            ['name' => 'Oncology', 'icon' => 'cancer.png'],
+            ['name' => 'Emergency', 'icon' => 'emergency.png'],
         ];
 
-        // 3. قائمة بخدمات طبية
         $servicesList = [
-            ['name' => 'ICU', 'desc' => '24/7 Intensive Care'],
-            ['name' => 'Emergency', 'desc' => 'Fast response team'],
-            ['name' => 'Laboratory', 'desc' => 'Accurate blood tests'],
-            ['name' => 'Pharmacy', 'desc' => 'Open 24 hours'],
+            ['name' => 'ICU', 'desc' => '24/7 Intensive Care Unit'],
+            ['name' => 'Emergency', 'desc' => 'Fast response medical team'],
+            ['name' => 'Laboratory', 'desc' => 'Accurate blood and clinical tests'],
         ];
+
+        // أولاً: إنشاء جميع التخصصات في جدول specialties
+        foreach ($specialtiesList as $specialtyData) {
+            Specialty::updateOrCreate(
+                ['name' => $specialtyData['name']],
+                ['icon_url' => $specialtyData['icon']]
+            );
+        }
+
+        $allSpecialties = Specialty::all();
 
         foreach ($hospitals as $hospital) {
-            // تحديث بيانات المستشفى الأساسية (Rating, WhatsApp, etc)
+            // تحديث بيانات المستشفى
             $hospital->update([
-                'rating' => '4.' . rand(1, 9), // تقييم عشوائي 4.1 لـ 4.9
+                'rating' => '4.' . rand(1, 9),
                 'accreditation' => 'JCI Accredited',
                 'whatsapp' => '011' . rand(10000000, 99999999),
                 'working_hours' => 'Available 24/7',
-                'about' => "Welcome to {$hospital->name}. We provide high-quality medical services."
+                'about' => "Welcome to {$hospital->name}. Expert medical care."
             ]);
 
-            // إضافة 3 تخصصات عشوائية لكل مستشفى
-            foreach (array_rand($specialtiesList, 3) as $key) {
-                specialty::updateOrCreate(
-                    ['hospital_id' => $hospital->id, 'name' => $specialtiesList[$key]['name']],
-                    ['icon_url' => $specialtiesList[$key]['icon']]
-                );
-            }
+            // ربط المستشفى بـ 3 تخصصات عشوائية
+            $hospital->specialties()->sync(
+                $allSpecialties->random(3)->pluck('id')->toArray()
+            );
 
-            // إضافة خدمتين عشوائيتين لكل مستشفى
-            foreach (array_rand($servicesList, 2) as $key) {
-                medicalservice::updateOrCreate(
-                    ['hospital_id' => $hospital->id, 'name' => $servicesList[$key]['name']],
-                    ['description' => $servicesList[$key]['desc']]
+            // إضافة الخدمات (One-to-Many)
+            $randomServices = collect($servicesList)->random(2);
+            foreach ($randomServices as $service) {
+                MedicalService::updateOrCreate(
+                    ['hospital_id' => $hospital->id, 'name' => $service['name']],
+                    ['description' => $service['desc']]
                 );
             }
         }

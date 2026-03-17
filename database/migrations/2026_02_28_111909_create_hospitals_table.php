@@ -6,30 +6,36 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('hospitals', function (Blueprint $table) {
             $table->id();
-            $table->string('name');           // اسم المستشفى
-            $table->string('address');        // العنوان النصي
-            
-            // --- الإضافات الجديدة لدعم التصميم وميزة الطوارئ ---
-            $table->string('image_url')->nullable();      // رابط صورة المستشفى
-            $table->decimal('lat', 10, 8)->nullable();    // خط العرض (Latitude)
-            $table->decimal('lng', 11, 8)->nullable();    // خط الطول (Longitude)
-            // ------------------------------------------------
+            $table->string('name');
+            $table->string('address');
+            $table->string('phone')->nullable();
+            $table->string('whatsapp')->nullable(); // ✅ مهم للتواصل السريع
 
-            $table->boolean('is_featured')->default(false); // للمستشفيات المميزة في الصفحة الرئيسية
+            $table->enum('type', ['government', 'private'])->default('government');
+            $table->string('image_url')->nullable();
+
+            $table->decimal('lat', 10, 8)->nullable();
+            $table->decimal('lng', 11, 8)->nullable();
+
+            $table->text('emergency_days')->nullable();
+            $table->string('working_hours')->default('24/7'); // ✅ عشان تظهر في Flutter
+
+            // بيانات إضافية للبروفايل
+            $table->string('rating')->nullable(); // ✅ التقييم
+            $table->string('accreditation')->nullable(); // ✅ الاعتمادات (مثل JCI)
+            $table->text('about')->nullable(); // ✅ نبذة عن المستشفى
+
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('hospitals');

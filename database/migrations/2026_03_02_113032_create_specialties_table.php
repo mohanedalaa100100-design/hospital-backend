@@ -13,13 +13,18 @@ return new class extends Migration
     {
         Schema::create('specialties', function (Blueprint $table) {
             $table->id();
-            // الربط مع جدول المستشفيات (Foreign Key)
-            // لو حذفت مستشفى، كل تخصصاتها هتتحذف تلقائياً (cascade)
-            $table->foreignId('hospital_id')->constrained()->onDelete('cascade'); 
-            
+
+            $table->unsignedBigInteger('hospital_id'); // ربط التخصص بالمستشفى
             $table->string('name'); // اسم التخصص زي (Cardiology, Oncology)
-            $table->string('icon_url')->nullable(); // عشان لو حبيت تحط أيقونة زي اللي في Figma
+            $table->string('icon_url')->nullable(); // أيقونة التخصص
+
             $table->timestamps();
+
+            // إنشاء المفتاح الخارجي
+            $table->foreign('hospital_id')
+                  ->references('id')
+                  ->on('hospitals')
+                  ->onDelete('cascade');
         });
     }
 

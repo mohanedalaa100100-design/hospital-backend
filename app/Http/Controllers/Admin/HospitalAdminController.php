@@ -6,99 +6,70 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Hospital;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB; // ضفنا دي عشان نضمن إن الداتا تسجل صح
 
 class HospitalAdminController extends Controller
 {
-    // 1. جلب كل المستشفيات للإدارة
     public function index()
     {
-        return response()->json(Hospital::all(), 200);
+        // بنرجع المستشفيات ومعاها التخصصات والخدمات عشان الأدمن يشوف كل حاجة
+        return response()->json(Hospital::with(['specialties', 'medicalServices'])->get(), 200);
     }
 
-    // 2. إضافة مستشفى جديد مع دعم رفع الصور
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // بنستقبل ملف صورة
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'is_featured' => 'boolean'
-        ]);
-
-        // التعامل مع رفع الصورة
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('uploads/hospitals'), $imageName);
-            $validated['image_url'] = asset('uploads/hospitals/' . $imageName);
-        }
-
-        $hospital = Hospital::create($validated);
-        
-        return response()->json([
-            'status' => true,
-            'message' => 'Hospital added with image successfully',
-            'hospital' => $hospital
-        ], 201);
-    }
-
-    // 3. تعديل بيانات مستشفى (مع إمكانية تغيير الصورة وحذف القديمة)
-    public function update(Request $request, $id)
-    {
-        $hospital = Hospital::findOrFail($id);
-
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'address' => 'sometimes|required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
-            'is_featured' => 'boolean'
+            'is_featured' => 'boolean',
+            // التعديل هنا: بنستقبل التخصصات والخدمات كـ مصفوفة (Array)
+            'specialties' => 'nullable|array',
+            'services'    => 'nullable|array'
         ]);
 
-        if ($request->hasFile('image')) {
-            // حذف الصورة القديمة من السيرفر لو موجودة عشان ما نملى المساحة ع الفاضي
-            if ($hospital->image_url) {
-                $oldPath = public_path(str_replace(asset(''), '', $hospital->image_url));
-                if (File::exists($oldPath)) {
-                    File::delete($oldPath);
+        // استخدام Transaction عشان نضمن لو حاجة فشلت مفيش داتا تبوظ
+        return DB::transaction(function () use ($request, $validated) {
+            
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '.' . $image->getClientOriginalExtension();
+                $image->move(public_path('uploads/hospitals'), $imageName);
+                $validated['image_url'] = asset('uploads/hospitals/' . $imageName);
+            }
+
+            // 1. حفظ المستشفى
+            $hospital = Hospital::create($validated);
+
+            // 2. ربط التخصصات (لو مبعوتة)
+            if ($request->has('specialties')) {
+                foreach ($request->specialties as $specialtyName) {
+                    $hospital->specialties()->create([
+                        'name' => $specialtyName,
+                        // هنا ممكن تحط Icon افتراضية لو عايز
+                    ]);
                 }
             }
 
-            // رفع الصورة الجديدة
-            $image = $request->file('image');
-            $imageName = time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('uploads/hospitals'), $imageName);
-            $validated['image_url'] = asset('uploads/hospitals/' . $imageName);
-        }
-
-        $hospital->update($validated);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Hospital updated successfully',
-            'hospital' => $hospital
-        ], 200);
-    }
-
-    // 4. حذف مستشفى وحذف صورتها من السيرفر
-    public function destroy($id)
-    {
-        $hospital = Hospital::findOrFail($id);
-        
-        if ($hospital->image_url) {
-            $path = public_path(str_replace(asset(''), '', $hospital->image_url));
-            if (File::exists($path)) {
-                File::delete($path);
+            // 3. ربط الخدمات (لو مبعوتة)
+            if ($request->has('services')) {
+                foreach ($request->services as $serviceName) {
+                    $hospital->medicalServices()->create([
+                        'name' => $serviceName,
+                    ]);
+                }
             }
-        }
 
-        $hospital->delete();
-        
-        return response()->json([
-            'message' => 'Hospital and its image deleted successfully'
-        ], 200);
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إضافة المستشفى وتخصصاتها وخدماتها بنجاح',
+                'hospital' => $hospital->load(['specialties', 'medicalServices'])
+            ], 201);
+        });
     }
+
+    // ... باقي الدوال (update و destroy) ممكن تسيبهم زي ما هما 
+    // أو نعدل الـ update لو عايز الأدمن يضيف تخصصات جديدة لمستشفى موجودة فعلاً
 }

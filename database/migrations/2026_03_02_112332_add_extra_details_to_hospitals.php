@@ -9,19 +9,34 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('hospitals', function (Blueprint $table) {
-            // إضافة البيانات اللي في تصميم الـ Details
-            $table->string('rating')->default('4.2'); // التقييم اللي جنب النجمة
-            $table->string('accreditation')->default('JCI Accredited'); // الاعتماد الدولي
-            $table->string('whatsapp')->nullable(); // رقم الواتساب الأحمر
-            $table->string('working_hours')->default('Available 24/7'); // مواعيد العمل
-            $table->text('about')->nullable(); // رسالة الترحيب "WELCOME TO..."
+            // مسح الأعمدة لو موجودة لتجنب أي خطأ Duplicate
+            $columns = ['rating', 'accreditation', 'whatsapp', 'working_hours', 'about'];
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('hospitals', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
+        });
+
+        Schema::table('hospitals', function (Blueprint $table) {
+            // إضافة الأعمدة الجديدة
+            $table->string('rating')->default('4.2');
+            $table->string('accreditation')->default('JCI Accredited');
+            $table->string('whatsapp')->nullable();
+            $table->string('working_hours')->default('Available 24/7');
+            $table->text('about')->nullable();
         });
     }
 
     public function down(): void
     {
         Schema::table('hospitals', function (Blueprint $table) {
-            $table->dropColumn(['rating', 'accreditation', 'whatsapp', 'working_hours', 'about']);
+            $columns = ['rating', 'accreditation', 'whatsapp', 'working_hours', 'about'];
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('hospitals', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

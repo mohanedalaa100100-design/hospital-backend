@@ -11,34 +11,41 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * الخانات اللي مسموح نكتب فيها بيانات مرة واحدة (Mass Assignment)
-     */
     protected $fillable = [
         'name',
         'email',
-        'phone',    // الحقل الجديد اللي ضفناه عشان الطوارئ والـ OTP
+        'phone',
         'password',
-        'is_admin', // عشان نقدر نحدد مين الأدمن ومين اليوزر العادي
+        'role', // 'user' أو 'hospital' أو 'admin'
+        'otp',  // مهم عشان شاشات التحقق في الـ UI
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        // 'role', // شيلته من هنا عشان الفرونت إند محتاجه يعرف صلاحيات اليوزر
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'is_admin' => 'boolean', // عشان لارافيل يرجعها true/false بدل 1/0
     ];
 
-    /**
-     * العلاقة مع البروفايل الطبي (One-to-One)
-     * دي بتخليك تنادي $user->medicalProfile وتجيب كل بياناته الطبية فوراً
-     */
+    // 1. العلاقة مع الملف الطبي (لشاشات الطوارئ)
     public function medicalProfile()
     {
         return $this->hasOne(MedicalProfile::class);
+    }
+
+    // 2. العلاقة مع الحجوزات (لشاشة My Appointments)
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    // 3. العلاقة مع طلبات الطوارئ (SOS Requests)
+    public function emergencyRequests()
+    {
+        return $this->hasMany(EmergencyRequest::class);
     }
 }
