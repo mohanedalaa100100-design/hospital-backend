@@ -9,10 +9,7 @@ use App\Models\QuickAction;
 
 class HomeController extends Controller
 {
-    /**
-     * شاشة الهوم (PointCare Home)
-     * بترجع السلايدر، الأزرار السريعة، والمستشفيات المميزة
-     */
+    
     public function index()
     {
         return response()->json([
@@ -29,10 +26,7 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * شاشة تفاصيل المستشفى (Hospital Details)
-     * دي اللي بتربط صفحة "دار الفؤاد" بكل خدماتها وتخصصاتها
-     */
+    
     public function show($id)
     {
         // بنجيب المستشفى بكل العلاقات اللي الفرونت محتاجها في شاشة واحدة
@@ -53,10 +47,7 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * البحث المتقدم (Search & Filter)
-     * بيبحث بالاسم، العنوان، أو التخصص
-     */
+    
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -80,10 +71,7 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * شاشة المستشفيات القريبة (Nearby Hospitals)
-     * بتستخدم معادلة Haversine لحساب المسافة الجغرافية
-     */
+    
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
@@ -96,12 +84,12 @@ class HomeController extends Controller
             ], 400);
         }
 
-        // حساب المسافة وترتيب المستشفيات النشطة فقط
+        
         $nearestHospitals = Hospital::selectRaw("*, 
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
             ->where('is_active', true)
-            ->with(['specialties']) // عشان يظهر الأيقونات تحت اسم المستشفى في اللستة
+            ->with(['specialties']) 
             ->orderBy('distance')
             ->take(50) 
             ->get();
@@ -113,9 +101,7 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * عرض كل المستشفيات (Explore All)
-     */
+    
     public function allHospitals()
     {
         $hospitals = Hospital::with(['specialties', 'medicalServices'])->get();

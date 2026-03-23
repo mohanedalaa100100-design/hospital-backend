@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\herosection; // تعديل: خليته صغير زي الصورة
+use App\Models\herosection; 
 use Illuminate\Database\Seeder;
 
 class HeroSectionSeeder extends Seeder
@@ -10,10 +10,11 @@ class HeroSectionSeeder extends Seeder
     public function run(): void
     {
         herosection::updateOrCreate(
-            ['title' => 'Emergency medical assistance when every second counts'],
+            ['title' => 'قصر العيني الجامعي'],
             [
                 'description' => 'Connecting you to life-saving care and reliable medical information instantly. Your safety and peace of mind is our top priority',
-                'image_url' => 'hero_ambulance.png', 
+                // غيرنا الاسم لـ 1.jpg عشان يقرأ من الصور اللي إحنا لسه مصلحينها
+                'image_url' => '1.jpg', 
             ]
         );
     }

@@ -25,7 +25,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => 'user', // تم التعديل هنا ليتطابق مع الـ Migration الجديدة
+            'role' => 'user', // 
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -65,7 +65,7 @@ class AuthController extends Controller
             'status' => true,
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'role' => $user->role, // تم التعديل لإرسال الـ role (admin, user, doctor)
+            'role' => $user->role, 
             'user' => $user
         ], 200);
     }
@@ -91,7 +91,7 @@ class AuthController extends Controller
         // إنشاء كود OTP عشوائي
         $otp = rand(100000, 999999);
 
-        // تخزين الكود في جدول الـ otps
+        // تخزين الكود في جدول ـ otps
         DB::table('otps')->updateOrInsert(
             ['email' => $user->email],
             [
@@ -105,7 +105,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'OTP sent successfully',
-            'otp_test' => $otp // بنرجعه هنا عشان التجربة في Postman بس
+            'otp_test' => $otp 
         ]);
     }
 

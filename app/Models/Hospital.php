@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute; // 👈 لازم تضيف السطر ده فوق
 
 class Hospital extends Model
 {
@@ -20,8 +21,6 @@ class Hospital extends Model
         'emergency_days',
         'is_active',
         'is_featured',
-
-        // optional fields
         'rating',
         'accreditation',
         'whatsapp',
@@ -30,7 +29,27 @@ class Hospital extends Model
     ];
 
     /**
-     * علاقة Many To Many مع التخصصات 🔥
+     * Accessor: بيحول مسار الصورة لرابط كامل تلقائياً 🔥
+     */
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (!$value) return null;
+                
+                // لو المسار يبدأ بـ http (زي صور النت القديمة) سيبه زي ما هو
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return $value;
+                }
+                
+                // لو مسار محلي، ضيف له رابط السيرفر (asset)
+                return asset($value);
+            },
+        );
+    }
+
+    /**
+     * علاقة Many To Many مع التخصصات
      */
     public function specialties()
     {
@@ -38,7 +57,7 @@ class Hospital extends Model
     }
 
     /**
-     * علاقة الخدمات الطبية (ممكن تسيبها زي ما هي)
+     * علاقة الخدمات الطبية
      */
     public function medicalServices()
     {

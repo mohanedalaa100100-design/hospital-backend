@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class AppointmentController extends Controller
 {
-    // 1. تسجيل حجز جديد
+    
     public function store(Request $request)
     {
         $request->validate([
@@ -21,7 +21,7 @@ class AppointmentController extends Controller
             'patient_phone' => 'required|string',
         ]);
 
-        // حركة احترافية: نمنع الحجز المزدوج لنفس الدكتور في نفس الساعة
+        
         $exists = Appointment::where('doctor_id', $request->doctor_id)
             ->where('appointment_date', $request->appointment_date)
             ->where('appointment_time', $request->appointment_time)
@@ -35,14 +35,14 @@ class AppointmentController extends Controller
         }
 
         $appointment = Appointment::create([
-            'user_id' => Auth::id(), // المريض اللي عامل Login دلوقتي
+            'user_id' => Auth::id(), 
             'doctor_id' => $request->doctor_id,
             'hospital_id' => $request->hospital_id,
             'appointment_date' => $request->appointment_date,
             'appointment_time' => $request->appointment_time,
             'patient_name' => $request->patient_name,
             'patient_phone' => $request->patient_phone,
-            'status' => 'pending', // الحالة الافتراضية
+            'status' => 'pending',
         ]);
 
         return response()->json([
@@ -52,7 +52,7 @@ class AppointmentController extends Controller
         ], 201);
     }
 
-    // 2. عرض حجوزات المستخدم الحالي
+    //
     public function myAppointments()
     {
         $appointments = Appointment::with(['doctor', 'hospital'])

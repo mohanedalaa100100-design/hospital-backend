@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Storage;
 
 class SpecialtyAdminController extends Controller
 {
-    // عرض كل التخصصات للأدمن
+
     public function index()
     {
         return response()->json(specialty::with('hospital')->get());
     }
 
-    // إضافة تخصص جديد وربطه بمستشفى
+    
     public function store(Request $request)
     {
         $request->validate([
@@ -24,7 +24,7 @@ class SpecialtyAdminController extends Controller
             'icon'        => 'required|image|mimes:png,jpg,jpeg,svg|max:2048'
         ]);
 
-        // رفع الأيقونة في فولدر خاص بالتخصصات
+        
         $path = $request->file('icon')->store('uploads/specialties', 'public');
 
         $specialty = specialty::create([
@@ -40,7 +40,7 @@ class SpecialtyAdminController extends Controller
         ], 201);
     }
 
-    // حذف تخصص (بيمسح الصورة من الجهاز كمان)
+
     public function destroy($id)
     {
         $specialty = specialty::find($id);
@@ -48,7 +48,7 @@ class SpecialtyAdminController extends Controller
             return response()->json(['message' => 'Specialty not found'], 404);
         }
 
-        // تنظيف ملف الصورة من الهارد
+    
         $relativeContext = str_replace(asset('storage/'), '', $specialty->icon_url);
         Storage::disk('public')->delete($relativeContext);
         

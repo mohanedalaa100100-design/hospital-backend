@@ -8,12 +8,12 @@ use Illuminate\Http\Request;
 
 class DoctorController extends Controller
 {
-    // 1. عرض كل الدكاترة (مع إمكانية الفلترة حسب التخصص)
+    
     public function index(Request $request)
     {
-        $query = Doctor::with('hospital'); // بنجيب معاهم اسم المستشفى اللي شغالين فيها
+        $query = Doctor::with('hospital');
 
-        // لو اليوزر اختار تخصص معين من الـ UI
+        
         if ($request->has('specialty')) {
             $query->where('specialty', $request->specialty);
         }
@@ -27,7 +27,7 @@ class DoctorController extends Controller
         ]);
     }
 
-    // 2. عرض تفاصيل دكتور معين (لما يضغط على الكارت)
+    
     public function show($id)
     {
         $doctor = Doctor::with('hospital')->find($id);

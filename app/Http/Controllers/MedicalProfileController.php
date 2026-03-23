@@ -8,12 +8,10 @@ use Illuminate\Support\Facades\Auth;
 
 class MedicalProfileController extends Controller
 {
-    /**
-     * عرض البيانات (عشان شاشة الـ Yes)
-     */
+    
     public function show()
     {
-        // بنستخدم العلاقة اللي بين اليوزر والبروفايل الطبي
+        
         $profile = Auth::user()->medicalProfile;
 
         if (!$profile) {
