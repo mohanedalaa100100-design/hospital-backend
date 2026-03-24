@@ -4,15 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute; 
 
 class Doctor extends Model
 {
     use HasFactory;
 
-    // الحقول اللي مسموح تتملي أوتوماتيك [cite: 2026-03-09]
     protected $fillable = [
         'name', 
-        'specialty', 
+        'specialty_id', 
         'phone', 
         'experience_years', 
         'rating', 
@@ -20,9 +20,30 @@ class Doctor extends Model
         'hospital_id'
     ];
 
-    // دي العلاقة اللي الـ Error بيطلبها بالاسم
+  
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (!$value) return null;
+                
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return $value;
+                }
+                
+                return asset($value);
+            },
+        );
+    }
+
+    
     public function hospital()
     {
         return $this->belongsTo(Hospital::class);
+    }
+
+    public function specialty()
+    {
+        return $this->belongsTo(Specialty::class, 'specialty_id');
     }
 }

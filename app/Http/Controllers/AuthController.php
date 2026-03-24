@@ -7,10 +7,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // ================= Register =================
+    // ================= Register (تسجيل مستخدم جديد) =================
     public function register(Request $request)
     {
         $request->validate([
@@ -25,61 +26,70 @@ class AuthController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => 'user', // 
+            'role' => 'user', 
         ]);
+
+        if (method_exists($user, 'medicalProfile')) {
+            $user->medicalProfile()->create([
+                'blood_type' => 'Not Set',
+            ]);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'status' => true,
+            'message' => 'User registered successfully',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'role' => $user->role,
             'user' => $user
         ], 201);
     }
 
-    // ================= Login =================
+    // ================= Login (الدخول بالإيميل أو الهاتف) =================
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|string',
+            'email' => 'required|string', 
             'password' => 'required|string',
         ]);
 
-        // بيسمح لليوزر يدخل بالإيميل أو رقم التليفون
         $user = User::where('email', $request->email)
                     ->orWhere('phone', $request->email)
                     ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'بيانات الدخول غير صحيحة'], 401);
+            return response()->json([
+                'status' => false,
+                'message' => 'بيانات الدخول غير صحيحة'
+            ], 401);
         }
 
-        // مسح التوكنز القديمة عشان يفضل عنده توكن واحد فعال بس
         $user->tokens()->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'status' => true,
+            'message' => 'Login successful',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'role' => $user->role, 
             'user' => $user
         ], 200);
     }
 
-    // ================= User Profile =================
+    // ================= User Profile (بيانات الحساب) =================
     public function userProfile(Request $request)
     {
+        $user = User::with('medicalProfile')->find(Auth::id());
+
         return response()->json([
-            'status' => 'success',
-            'user' => $request->user()
+            'status' => true,
+            'user' => $user
         ], 200);
     }
 
-    // ================= Forgot Password (OTP) =================
+    // ================= Forgot Password (إرسال OTP) =================
     public function forgotPassword(Request $request)
     {
         $request->validate([
@@ -88,10 +98,9 @@ class AuthController extends Controller
 
         $user = User::where('phone', $request->phone)->first();
 
-        // إنشاء كود OTP عشوائي
+        // كود التحقق العشوائي (OTP) 
         $otp = rand(100000, 999999);
 
-        // تخزين الكود في جدول ـ otps
         DB::table('otps')->updateOrInsert(
             ['email' => $user->email],
             [
@@ -104,12 +113,12 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'OTP sent successfully',
-            'otp_test' => $otp 
+            'message' => 'تم إرسال كود التحقق بنجاح',
+            'otp_test' => $otp // بنسيبه هنا عشان مرحلة الـ Testing بس
         ]);
     }
 
-    // ================= Verify OTP =================
+    // ================= Verify OTP (التحقق من الكود) =================
     public function verifyOtp(Request $request)
     {
         $request->validate([
@@ -133,7 +142,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= Reset Password =================
+    // ================= Reset Password (تعيين كلمة مرور جديدة) =================
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -146,17 +155,17 @@ class AuthController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
-        // مسح الكود بعد الاستخدام وتسجيل الخروج من كل الأجهزة للأمان
+        // تنظيف الجداول للأمان
         DB::table('otps')->where('email', $user->email)->delete();
         $user->tokens()->delete();
 
         return response()->json([
             'status' => true,
-            'message' => 'تم تغيير كلمة المرور بنجاح'
+            'message' => 'تم تغيير كلمة المرور بنجاح، يمكنك الدخول الآن'
         ]);
     }
 
-    // ================= Logout =================
+    // ================= Logout (تسجيل الخروج) =================
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

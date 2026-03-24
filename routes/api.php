@@ -10,53 +10,52 @@ use App\Http\Controllers\Api\AppointmentController;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes (الروابط المتاحة للكل)
+| Public Routes
 |--------------------------------------------------------------------------
 */
 
-// Auth - تسجيل الدخول والحماية
+// Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Discovery - روابط الصفحة الرئيسية والبحث (مهمة للـ Figma)
+// Discovery
 Route::get('/home-page', [HomeController::class, 'index']); 
-Route::get('/specialties', [HomeController::class, 'allSpecialties']); // ضفت لك ده عشان الـ 404
-Route::get('/hospitals', [HomeController::class, 'allHospitals']);
+Route::get('/specialties', [HomeController::class, 'allSpecialties']); 
+Route::get('/hospitals', [HomeController::class, 'allHospitals']); // ميثود جديدة
 Route::get('/hospitals/nearest', [HomeController::class, 'findNearest']); 
 Route::get('/hospitals/search', [HomeController::class, 'search']); 
-Route::get('/hospitals/{hospital}', [HomeController::class, 'show']);
+Route::get('/hospitals/{id}', [HomeController::class, 'show']);
 
 // Doctors
 Route::get('/doctors', [DoctorController::class, 'index']); 
-Route::get('/doctors/{doctor}', [DoctorController::class, 'show']); 
+Route::get('/doctors/{id}', [DoctorController::class, 'show']); 
 
-// Guest Emergency - طوارئ سريعة
+
 Route::post('/emergency/quick-send', [EmergencyRequestController::class, 'quickSend']); 
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes (الروابط اللي محتاجة Token)
+| Protected Routes (الروابط المحمية)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Account & Logout
+    // User Profile & Logout
     Route::get('/user', [AuthController::class, 'userProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Medical Profile (التاريخ المرضي)
+    // Medical Profile
     Route::get('/medical-profile', [MedicalProfileController::class, 'show']); 
     Route::post('/medical-profile', [MedicalProfileController::class, 'store']); 
 
-    // Appointments (المواعيد)
+    // Appointments
     Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']); 
     Route::post('/appointments/book', [AppointmentController::class, 'store']);
-    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
+    Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']); // ميثود جديدة
 
-    // Emergency Requests
-    Route::post('/emergency/send', [EmergencyRequestController::class, 'sendRequest']); 
+    // Emergency Status (طلبات الطوارئ الخاصة باليوزر)
     Route::get('/emergency/my-requests', [EmergencyRequestController::class, 'userRequests']); 
 });

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute; 
 
 class Specialty extends Model
 {
@@ -16,17 +17,29 @@ class Specialty extends Model
         'icon_url'
     ];
 
-    /**
-     * علاقة Many To Many مع المستشفيات
-     */
+   
+    protected function iconUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (!$value) return null;
+                
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return $value;
+                }
+                
+                return asset($value);
+            },
+        );
+    }
+
+    
     public function hospitals()
     {
         return $this->belongsToMany(Hospital::class);
     }
 
-    /**
-     * علاقة التخصص بالدكاترة (One To Many)
-     */
+   
     public function doctors()
     {
         return $this->hasMany(Doctor::class, 'specialty_id');

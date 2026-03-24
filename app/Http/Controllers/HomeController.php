@@ -6,32 +6,68 @@ use Illuminate\Http\Request;
 use App\Models\Hospital;
 use App\Models\herosection;
 use App\Models\QuickAction;
-use App\Models\Specialty; // 👈 لازم يكون موجود عشان allSpecialties تشتغل
+use App\Models\Specialty; // التأكد من أن الحرف الأول Capital ليتناسب مع السيرفرات
 
 class HomeController extends Controller
 {
     /**
      * جلب بيانات الصفحة الرئيسية (Hero, Quick Actions, Featured Hospitals)
+     * مربوط بـ GET /api/home-page
      */
     public function index()
     {
-        return response()->json([
-            'status' => true,
-            'message' => 'Home page data retrieved successfully',
-            'data' => [
-                'hero_section'       => herosection::all(), 
-                'quick_actions'      => QuickAction::all(),
-                'featured_hospitals' => Hospital::with(['specialties'])
-                                        ->where('is_featured', true)
-                                        ->where('is_active', true)
-                                        ->take(6)
-                                        ->get()
-            ]
-        ], 200);
+        try {
+            return response()->json([
+                'status' => true,
+                'message' => 'Home page data retrieved successfully',
+                'data' => [
+                    'hero_section'       => herosection::all(), 
+                    'quick_actions'      => QuickAction::all(),
+                    'featured_hospitals' => Hospital::with(['specialties'])
+                                            ->where('is_featured', true)
+                                            ->where('is_active', true)
+                                            ->take(6)
+                                            ->get()
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Error loading home page',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * جلب كل التخصصات - الـ API اللي كان بيدي 500
+     * جلب كل المستشفيات (الميثود اللي كانت ناقصة رقم 2)
+     * مربوط بـ GET /api/hospitals
+     */
+    public function allHospitals()
+    {
+        try {
+            $hospitals = Hospital::where('is_active', true)
+                                ->with(['specialties', 'medicalServices'])
+                                ->get();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'All hospitals retrieved successfully',
+                'count'  => $hospitals->count(),
+                'data'   => $hospitals
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Error fetching hospitals',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * جلب كل التخصصات 
+     * مربوط بـ GET /api/specialties
      */
     public function allSpecialties()
     {
@@ -53,6 +89,7 @@ class HomeController extends Controller
 
     /**
      * تفاصيل مستشفى محددة
+     * مربوط بـ GET /api/hospitals/{id}
      */
     public function show($id)
     {
@@ -73,9 +110,10 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * البحث الذكي (بالاسم أو العنوان أو التخصص)
-     */
+        /**
+        * البحث عن مستشفيات بناءً على اسم المستشفى، العنوان، أو التخصصات
+        * مربوط بـ GET /api/hospitals/search?query=...
+        */
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -107,6 +145,7 @@ class HomeController extends Controller
 
     /**
      * جلب أقرب مستشفيات بناءً على الـ GPS
+     * مربوط بـ GET /api/hospitals/nearest
      */
     public function findNearest(Request $request)
     {
@@ -120,6 +159,7 @@ class HomeController extends Controller
             ], 400);
         }
 
+        
         $nearestHospitals = Hospital::selectRaw("*, 
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])

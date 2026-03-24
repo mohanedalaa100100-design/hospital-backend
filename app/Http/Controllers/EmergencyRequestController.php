@@ -13,11 +13,11 @@ class EmergencyRequestController extends Controller
 {
     public function __construct()
     {
+        
         config(['app.timezone' => 'Africa/Cairo']);
     }
 
-
-     
+    
     public function quickSend(Request $request)
     {
         $request->validate([
@@ -29,9 +29,11 @@ class EmergencyRequestController extends Controller
         $userLat = $request->lat;
         $userLng = $request->lng;
         $currentDay = Carbon::now()->format('l'); 
-        $user = Auth::user(); 
+        
+       
+        $user = Auth::guard('sanctum')->user(); 
 
-
+        // البحث عن أقرب مستشفى (حكومي في يوم طوارئه أو خاص متاح دايماً)
         $nearestHospital = Hospital::select('id', 'name', 'lat', 'lng', 'address', 'type')
             ->selectRaw("(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
@@ -53,18 +55,17 @@ class EmergencyRequestController extends Controller
             ], 404);
         }
 
-    
+        // جلب البروفايل الطبي لو اليوزر مسجل دخول
         $medicalProfile = $user ? $user->medicalProfile : null;
 
-    
+        // إنشاء طلب الاستغاثة
         $emergency = EmergencyRequest::create([
-            'user_id'            => Auth::id(), // ربط باليوزر لو مسجل
-            'hospital_id'        => $nearestHospital->id,
-            'user_lat'           => $userLat,
-            'user_lng'           => $userLng,
-            'status'             => 'pending', // الحالة الافتراضية
-            'note'               => $request->note ?? 'استغاثة طارئة',
-        
+            'user_id'     => $user ? $user->id : null, 
+            'hospital_id' => $nearestHospital->id,
+            'user_lat'    => $userLat,
+            'user_lng'    => $userLng,
+            'status'      => 'pending',
+            'note'        => $request->note ?? 'استغاثة طارئة',
         ]);
 
         return response()->json([
@@ -78,5 +79,22 @@ class EmergencyRequestController extends Controller
                 'eta'           => round(($nearestHospital->distance / 30) * 60) . ' mins' 
             ]
         ], 201);
+    }
+
+    /**
+     * جلب تاريخ استغاثات المستخدم الحالي
+     * مربوط بـ GET /api/emergency/my-requests
+     */
+    public function userRequests()
+    {
+        $requests = EmergencyRequest::with('hospital')
+            ->where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $requests
+        ], 200);
     }
 }
