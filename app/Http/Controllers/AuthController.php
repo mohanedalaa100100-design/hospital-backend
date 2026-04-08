@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Exception;
 
 class AuthController extends Controller
 {
-    // ================= Register (تسجيل مستخدم جديد) =================
+    // ================= Register (تسجيل مستخدم جديد مع الملف الطبي) =================
     public function register(Request $request)
     {
+        // 1. التحقق من بيانات المستخدم (الاسم، الإيميل، الهاتف، الباسورد)
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
@@ -21,29 +23,54 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role' => 'user', 
-        ]);
+        // 2. نبدأ الـ Transaction لضمان سلامة البيانات
+        DB::beginTransaction();
 
-        if (method_exists($user, 'medicalProfile')) {
-            $user->medicalProfile()->create([
-                'blood_type' => 'Not Set',
+        try {
+            // الخطوة أ: إنشاء اليوزر في جدول users
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'role' => 'user', 
             ]);
+
+            // الخطوة ب: إنشاء الملف الطبي المرتبط باليوزر
+            // بعتنا القيم الإجبارية (full_name, age, gender) عشان الداتا بيز مطلعش Error 1364
+            if (method_exists($user, 'medicalProfile')) {
+                $user->medicalProfile()->create([
+                    'full_name'  => $user->name,   // نستخدم اسم المستخدم كاسم كامل مبدئياً
+                    'age'        => 0,            // سن افتراضي (يعدله لاحقاً)
+                    'gender'     => 'Not Set',    // نوع افتراضي
+                    'blood_type' => 'Not Set',    // فصيلة دم افتراضية
+                ]);
+            }
+
+            // لو الخطوتين نجحوا، نثبت البيانات
+            DB::commit();
+
+            // إصدار توكن الدخول (Sanctum)
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'status' => true,
+                'message' => 'User registered successfully',
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user
+            ], 201);
+
+        } catch (Exception $e) {
+            // لو حصل أي Error في أي خطوة، التراجع عن كل شيء (Rollback)
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'حدث خطأ أثناء التسجيل، تم إلغاء العملية لتجنب تكرار البيانات',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'status' => true,
-            'message' => 'User registered successfully',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
-        ], 201);
     }
 
     // ================= Login (الدخول بالإيميل أو الهاتف) =================
@@ -65,6 +92,7 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // حذف التوكنات القديمة للأمان
         $user->tokens()->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -78,7 +106,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= User Profile (بيانات الحساب) =================
+    // ================= User Profile (بيانات الحساب مع الملف الطبي) =================
     public function userProfile(Request $request)
     {
         $user = User::with('medicalProfile')->find(Auth::id());
@@ -89,7 +117,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= Forgot Password (إرسال OTP) =================
+    // ================= Forgot Password (إرسال OTP للهاتف) =================
     public function forgotPassword(Request $request)
     {
         $request->validate([
@@ -98,7 +126,7 @@ class AuthController extends Controller
 
         $user = User::where('phone', $request->phone)->first();
 
-        // كود التحقق العشوائي (OTP) 
+        // توليد كود تحقق عشوائي
         $otp = rand(100000, 999999);
 
         DB::table('otps')->updateOrInsert(
@@ -114,7 +142,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم إرسال كود التحقق بنجاح',
-            'otp_test' => $otp // بنسيبه هنا عشان مرحلة الـ Testing بس
+            'otp_test' => $otp 
         ]);
     }
 
@@ -142,7 +170,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= Reset Password (تعيين كلمة مرور جديدة) =================
+    // ================= Reset Password (تغيير كلمة المرور) =================
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -155,7 +183,7 @@ class AuthController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
-        // تنظيف الجداول للأمان
+        // مسح الـ OTP والتوكنات القديمة للأمان
         DB::table('otps')->where('email', $user->email)->delete();
         $user->tokens()->delete();
 
