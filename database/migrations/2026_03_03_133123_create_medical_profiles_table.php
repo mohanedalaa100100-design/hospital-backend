@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade'); 
             
             // Basic Information (كما في التصميم)
-            $table->string('full_name'); 
+            $table->string('name'); 
             $table->integer('age');
             $table->string('gender'); // Male / Female
             
