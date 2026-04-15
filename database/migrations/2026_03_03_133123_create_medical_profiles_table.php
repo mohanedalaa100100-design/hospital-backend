@@ -16,10 +16,17 @@ return new class extends Migration
             // ربط البروفايل بالمستخدم (كل مستخدم له بروفايل طبي واحد فقط)
             $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade'); 
             
+<<<<<<< HEAD
+            // Basic Information (كما في التصميم)
+            $table->string('name'); 
+            $table->integer('age');
+            $table->string('gender'); // Male / Female
+=======
             // Basic Information (جعلناها nullable لأن اليوزر بيكملها بعد التسجيل)
             $table->string('full_name')->nullable(); 
             $table->integer('age')->nullable();
             $table->string('gender')->nullable(); // Male / Female
+>>>>>>> 6e711c13bab2bed39e1645776aff93cbfa13765e
             
             // Medical Info
             $table->string('blood_type')->nullable(); // O+, A+, etc.
