@@ -9,10 +9,7 @@ class MedicalProfile extends Model
 {
     use HasFactory;
 
-    /**
-     * الحقول المسموح بتخزينها مباشرة (Mass Assignment)
-     * دي مطابقة تماماً للشاشات اللي في التصميم (UI/UX)
-     */
+    
     protected $fillable = [
         'user_id',
         'full_name',
@@ -24,9 +21,7 @@ class MedicalProfile extends Model
         'special_condition'
     ];
 
-    /**
-     * العلاقة العكسية مع المستخدم
-     */
+    
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('emergency_requests', function (Blueprint $table) {
             $table->id();
             
-            // التعديل الأهم: إضافة nullable() عشان الاستغاثة السريعة (بدون تسجيل) تشتغل
+            
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             
             $table->foreignId('hospital_id')->nullable()->constrained()->onDelete('set null');

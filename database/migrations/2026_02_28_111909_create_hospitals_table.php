@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('address');
             $table->string('phone')->nullable();
-            $table->string('whatsapp')->nullable(); // ✅ مهم للتواصل السريع
+            $table->string('whatsapp')->nullable(); 
 
             $table->enum('type', ['government', 'private'])->default('government');
             $table->string('image_url')->nullable();
@@ -22,12 +22,12 @@ return new class extends Migration
             $table->decimal('lng', 11, 8)->nullable();
 
             $table->text('emergency_days')->nullable();
-            $table->string('working_hours')->default('24/7'); // ✅ عشان تظهر في Flutter
+            $table->string('working_hours')->default('24/7'); //
 
             // بيانات إضافية للبروفايل
-            $table->string('rating')->nullable(); // ✅ التقييم
-            $table->string('accreditation')->nullable(); // ✅ الاعتمادات (مثل JCI)
-            $table->text('about')->nullable(); // ✅ نبذة عن المستشفى
+            $table->string('rating')->nullable();
+            $table->string('accreditation')->nullable(); 
+            $table->text('about')->nullable(); 
 
             $table->boolean('is_active')->default(true);
             $table->boolean('is_featured')->default(false);

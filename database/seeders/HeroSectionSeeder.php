@@ -13,7 +13,7 @@ class HeroSectionSeeder extends Seeder
             ['title' => 'قصر العيني الجامعي'],
             [
                 'description' => 'Connecting you to life-saving care and reliable medical information instantly. Your safety and peace of mind is our top priority',
-                // غيرنا الاسم لـ 1.jpg عشان يقرأ من الصور اللي إحنا لسه مصلحينها
+                
                 'image_url' => '1.jpg', 
             ]
         );

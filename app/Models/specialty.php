@@ -10,6 +10,7 @@ class Specialty extends Model
 {
     use HasFactory;
 
+    // تحديد اسم الجدول في قاعدة البيانات
     protected $table = 'specialties'; 
 
     protected $fillable = [
@@ -17,7 +18,9 @@ class Specialty extends Model
         'icon_url'
     ];
 
-   
+    /**
+     * Accessor للـ icon_url عشان يرجع المسار كامل
+     */
     protected function iconUrl(): Attribute
     {
         return Attribute::make(
@@ -36,7 +39,7 @@ class Specialty extends Model
     
     public function hospitals()
     {
-        return $this->belongsToMany(Hospital::class);
+        return $this->belongsToMany(Hospital::class, 'hospital_specialty');
     }
 
    

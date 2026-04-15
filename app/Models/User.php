@@ -31,7 +31,7 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // 1. العلاقة مع الملف الطبي (لشاشات الطوارئ)
+    
     public function medicalProfile()
     {
         return $this->hasOne(MedicalProfile::class);

@@ -23,7 +23,6 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        // 2. نبدأ الـ Transaction لضمان سلامة البيانات
         DB::beginTransaction();
 
         try {
@@ -36,8 +35,7 @@ class AuthController extends Controller
                 'role' => 'user', 
             ]);
 
-            // الخطوة ب: إنشاء الملف الطبي المرتبط باليوزر
-            // دلوقتي بنبعت الـ full_name بس، والباقي هينزل NULL في الداتا بيز (لأننا عدلنا الـ Migration)
+            
             if (method_exists($user, 'medicalProfile')) {
                 $user->medicalProfile()->create([
                     'full_name' => $user->name,

@@ -6,14 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Hospital;
 use App\Models\herosection;
 use App\Models\QuickAction;
-use App\Models\Specialty; // التأكد من أن الحرف الأول Capital ليتناسب مع السيرفرات
+use App\Models\Specialty;
 
 class HomeController extends Controller
 {
-    /**
-     * جلب بيانات الصفحة الرئيسية (Hero, Quick Actions, Featured Hospitals)
-     * مربوط بـ GET /api/home-page
-     */
+    
     public function index()
     {
         try {
@@ -39,10 +36,7 @@ class HomeController extends Controller
         }
     }
 
-    /**
-     * جلب كل المستشفيات (الميثود اللي كانت ناقصة رقم 2)
-     * مربوط بـ GET /api/hospitals
-     */
+   
     public function allHospitals()
     {
         try {

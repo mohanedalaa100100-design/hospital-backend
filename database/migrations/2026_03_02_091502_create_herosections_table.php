@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('herosections', function (Blueprint $table) {
             $table->id();
-            $table->string('title');        // العنوان: Emergency medical assistance...
-            $table->text('description');    // النص: Connecting you to life-saving care...
-            $table->string('image_url');    // رابط صورة عربيات الإسعاف
+            $table->string('title');       
+            $table->text('description');    
+            $table->string('image_url');    
             $table->timestamps();
         });
     }

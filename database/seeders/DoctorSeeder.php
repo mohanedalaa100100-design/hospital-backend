@@ -10,7 +10,7 @@ class DoctorSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. الدكاترة اللي إنت اخترتهم يدوياً (الـ 7 الأساسيين) [cite: 2026-03-09]
+        
         $manualDoctors = [
             ['hospital_id' => 1, 'name' => 'د. أحمد حسان', 'specialty' => 'Cardiology', 'title' => 'Senior Cardiologist', 'experience_years' => 15, 'rating' => 4.9, 'reviews_count' => 128],
             ['hospital_id' => 2, 'name' => 'د. محمود مجدي', 'specialty' => 'Cardiology', 'title' => 'Consultant', 'experience_years' => 20, 'rating' => 5.0, 'reviews_count' => 210],
@@ -25,7 +25,7 @@ class DoctorSeeder extends Seeder
             Doctor::updateOrCreate(['name' => $doctor['name']], $doctor);
         }
 
-        // 2. توزيع تلقائي لباقي المستشفيات عشان الأبلكيشن ميبقاش فاضي
+        // 2. توزيع تلقائي لباقي المستشفيات 
         $specialties = ['Cardiology', 'Dentistry', 'Neurology', 'Orthopedics', 'Pediatrics', 'Ophthalmology'];
         $allHospitals = Hospital::all();
 
@@ -35,7 +35,7 @@ class DoctorSeeder extends Seeder
                 Doctor::firstOrCreate(
                     ['hospital_id' => $hospital->id, 'specialty' => $specialty],
                     [
-                        'name' => 'د. ' . fake('ar_SA')->name(), // أسماء عربية [cite: 2026-03-09]
+                        'name' => 'د. ' . fake('ar_SA')->name(), 
                         'title' => 'Specialist ' . $specialty,
                         'experience_years' => fake()->numberBetween(5, 20),
                         'rating' => fake()->randomFloat(1, 4, 5),

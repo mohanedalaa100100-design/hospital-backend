@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         );
         $admin->tokens()->delete();
 
-        // 2. إنشاء حساب مستخدم عادي (Mohanad Alaa)
+        
         $user = User::updateOrCreate(
             ['email' => 'user@gmail.com'],
             [

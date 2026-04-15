@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('quick_actions', function (Blueprint $table) {
             $table->id();
-            $table->string('title');        // مثلاً: Emergency Mode أو Normal Mode
-            $table->text('description');    // النص الصغير اللي تحت العنوان في Figma
-            $table->string('image_url');    // رابط الصورة الخلفية (الحمراء أو الزرقاء)
-            $table->string('type');         // نوع الزرار عشان البرمجة (emergency أو normal)
+            $table->string('title');        
+            $table->text('description');    
+            $table->string('image_url');  
+            $table->string('type');         
             $table->timestamps();
         });
     }
