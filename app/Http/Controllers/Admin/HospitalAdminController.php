@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Hospital;
+use App\Models\Specialty; 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB; 
 
@@ -12,7 +13,6 @@ class HospitalAdminController extends Controller
 {
     public function index()
     {
-        
         return response()->json(Hospital::with(['specialties', 'medicalServices'])->get(), 200);
     }
 
@@ -25,37 +25,41 @@ class HospitalAdminController extends Controller
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
             'is_featured' => 'boolean',
-            
             'specialties' => 'nullable|array',
             'services'    => 'nullable|array'
         ]);
 
-    
         return DB::transaction(function () use ($request, $validated) {
             
+            // رفع الصورة وتخزين المسار
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('uploads/hospitals'), $imageName);
-                $validated['image_url'] = asset('uploads/hospitals/' . $imageName);
+                $validated['image_url'] = 'uploads/hospitals/' . $imageName;
             }
 
-            
+            // إنشاء المستشفى
             $hospital = Hospital::create($validated);
 
-            
+            // 1. ربط التخصصات (نظام Many-to-Many صح)
             if ($request->has('specialties')) {
                 foreach ($request->specialties as $specialtyName) {
-                    $hospital->specialties()->create([
-                        'name' => $specialtyName,
+                    // ابحث عن التخصص بالاسم، لو موجود هاته، لو مش موجود كريته
+                    $specialty = Specialty::firstOrCreate(
+                        ['name' => $specialtyName],
+                        ['icon_url' => 'default_icon.png'] // أيقونة افتراضية
+                    );
                     
-                    ]);
+                    // اربط المستشفى بالتخصص في الجدول الوسيط (البيفوت)
+                    $hospital->specialties()->syncWithoutDetaching([$specialty->id]);
                 }
             }
 
-            
+            // 2. إضافة الخدمات الطبية
             if ($request->has('services')) {
                 foreach ($request->services as $serviceName) {
+                    // بنفترض هنا إن الخدمات تابعة لكل مستشفى لوحدها One-to-Many
                     $hospital->medicalServices()->create([
                         'name' => $serviceName,
                     ]);
@@ -69,6 +73,4 @@ class HospitalAdminController extends Controller
             ], 201);
         });
     }
-
-  
 }

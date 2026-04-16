@@ -12,7 +12,7 @@ class HospitalDetailsSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. تنظيف جدول التخصصات والخدمات عشان نمنع أي تكرار قديم
+        // 1. تنظيف الجداول عشان نمنع التكرار
         Schema::disableForeignKeyConstraints();
         Specialty::truncate();
         MedicalService::truncate();
@@ -23,23 +23,17 @@ class HospitalDetailsSeeder extends Seeder
             return;
         }
 
-        // 2. قائمة التخصصات الـ 6 الأساسية (دي اللي هتظهر لشروق في الـ Home)
+        // 2. قائمة التخصصات الـ 6 الأساسية (زي ما في الـ UI بالظبط)
         $specialtiesList = [
             ['name' => 'Cardiology', 'icon' => 'cardio.png'],
             ['name' => 'Orthopedics', 'icon' => 'ortho.png'],
+            ['name' => 'Oncology', 'icon' => 'oncology.png'],
+            ['name' => 'Internal Medicine', 'icon' => 'internal.png'],
+            ['name' => 'Kidney Transplant', 'icon' => 'kidney.png'],
             ['name' => 'Neurology', 'icon' => 'neuro.png'],
-            ['name' => 'Pediatrics', 'icon' => 'pedia.png'],
-            ['name' => 'Emergency', 'icon' => 'emergency.png'],
-            ['name' => 'Surgery', 'icon' => 'surgery.png'],
         ];
 
-        $servicesList = [
-            ['name' => 'ICU', 'desc' => '24/7 Intensive Care Unit'],
-            ['name' => 'Emergency', 'desc' => 'Fast response medical team'],
-            ['name' => 'Laboratory', 'desc' => 'Accurate blood and clinical tests'],
-        ];
-
-        // 3. إنشاء التخصصات الـ 6 لمرة واحدة فقط في الداتابيز كلها
+        // 3. إنشاء التخصصات الـ 6
         foreach ($specialtiesList as $specialtyData) {
             Specialty::create([
                 'name' => $specialtyData['name'],
@@ -49,24 +43,34 @@ class HospitalDetailsSeeder extends Seeder
 
         $allSpecialties = Specialty::all();
 
+        // 4. الخدمات الـ 6 (2 Supportive + 4 Facilities) عشان شروق تقسمهم
+        $servicesList = [
+            // Supportive Medical Services
+            ['name' => 'ICU CARE', 'desc' => 'Intensive Monitoring'],
+            ['name' => 'Laboratory', 'desc' => 'Advanced Diagnostics'],
+            
+            // Facilities & Services
+            ['name' => 'Private Rooms', 'desc' => 'Equipped with Wi-Fi and TV'],
+            ['name' => 'On-site Amenities', 'desc' => 'Pharmacy, ATM, and Cafe'],
+            ['name' => '24/7 Pharmacy', 'desc' => 'Emergency Medications'],
+            ['name' => 'Patient Parking', 'desc' => 'Secure Parking Space'],
+        ];
+
         foreach ($hospitals as $hospital) {
-            // 4. تحديث بيانات المستشفى
+            // تحديث بيانات المستشفى الأساسية
             $hospital->update([
-                'rating' => '4.' . rand(5, 9),
+                'rating' => 4.2, // خليته ثابت زي التصميم أو ممكن تخليه راندوم
                 'accreditation' => 'JCI Accredited',
-                'whatsapp' => '011' . rand(10000000, 99999999),
+                'whatsapp' => '01100216370', // الرقم اللي في التصميم
                 'working_hours' => 'Available 24/7',
-                'about' => "Welcome to {$hospital->name}. Expert medical care."
+                'about' => "WELCOME TO {$hospital->name}\nExcellence in Medical Care."
             ]);
 
-            // 5. الربط الصح (Many-to-Many): كل مستشفى تاخد 5 تخصصات عشوائية من الـ 6 اللي فوق
-            $hospital->specialties()->sync(
-                $allSpecialties->random(5)->pluck('id')->toArray()
-            );
+            // ربط كل التخصصات الـ 6 بالمستشفى عشان يظهروا كلهم
+            $hospital->specialties()->sync($allSpecialties->pluck('id')->toArray());
 
-            // 6. إضافة الخدمات
-            $randomServices = collect($servicesList)->random(2);
-            foreach ($randomServices as $service) {
+            // إضافة الـ 6 خدمات لكل مستشفى
+            foreach ($servicesList as $service) {
                 MedicalService::create([
                     'hospital_id' => $hospital->id,
                     'name' => $service['name'],
