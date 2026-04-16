@@ -16,13 +16,20 @@ class Hospital extends Model
         'whatsapp', 'working_hours', 'about'
     ];
 
-    // علاقة الـ Many-to-Many المظبوطة مع التخصصات
+    
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_featured' => 'boolean',
+        'rating' => 'float',
+        'lat' => 'double',
+        'lng' => 'double',
+    ];
+
     public function specialties()
     {
         return $this->belongsToMany(Specialty::class, 'hospital_specialty');
     }
 
-    // العلاقات التانية (One-to-Many)
     public function medicalServices()
     {
         return $this->hasMany(MedicalService::class);
@@ -31,5 +38,22 @@ class Hospital extends Model
     public function doctors()
     {
         return $this->hasMany(Doctor::class);
+    }
+
+    
+    public function getImageUrlAttribute($value)
+    {
+        if (!$value) {
+            return asset('images/hospitals/default.jpg');
+        }
+
+        return filter_var($value, FILTER_VALIDATE_URL) ? $value : asset($value);
+    }
+
+    
+     
+    public function getRatingAttribute($value)
+    {
+        return number_format((float) ($value ?? 0.0), 1);
     }
 }
