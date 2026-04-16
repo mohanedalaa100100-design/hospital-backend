@@ -16,13 +16,7 @@ class HomeController extends Controller
     public function index()
     {
         try {
-            // جلب التخصصات مع روابط صور كاملة للعرض في الهوم
-            $specialties = Specialty::take(10)->get()->map(function ($item) {
-                if ($item->icon_url && !filter_var($item->icon_url, FILTER_VALIDATE_URL)) {
-                    $item->icon_url = asset('storage/' . $item->icon_url);
-                }
-                return $item;
-            });
+            $specialties = Specialty::take(10)->get();
 
             return response()->json([
                 'status' => true,
@@ -31,7 +25,8 @@ class HomeController extends Controller
                     'hero_section'       => herosection::all(), 
                     'quick_actions'      => QuickAction::all(),
                     'specialties'        => $specialties,
-                    'featured_hospitals' => Hospital::with(['specialties'])
+                    // ضفنا medicalServices هنا برضه عشان تظهر في الهوم
+                    'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
                                             ->where('is_featured', true)
                                             ->where('is_active', true)
                                             ->take(6)
@@ -48,47 +43,17 @@ class HomeController extends Controller
     }
 
     /**
-     * جلب كل المستشفيات النشطة
-     */
-    public function allHospitals()
-    {
-        try {
-            $hospitals = Hospital::where('is_active', true)
-                                ->with(['specialties', 'medicalServices'])
-                                ->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'All hospitals retrieved successfully',
-                'count'  => $hospitals->count(),
-                'data'   => $hospitals
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Error fetching hospitals',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * جلب كل التخصصات مع المستشفيات المربوطة بها (تعديل مهند)
+     * جلب كل التخصصات مع المستشفيات والخدمات (التعديل المهم)
      */
     public function allSpecialties()
     {
         try {
-            // هنا السر: استخدمنا with عشان نجيب المستشفيات و map عشان نصلح الروابط
-            $specialties = Specialty::with('hospitals')->get()->map(function ($item) {
-                if ($item->icon_url && !filter_var($item->icon_url, FILTER_VALIDATE_URL)) {
-                    $item->icon_url = asset('storage/' . $item->icon_url);
-                }
-                return $item;
-            });
+            // "hospitals.medicalServices" هي اللي بتجيب الخدمات اللي جوه كل مستشفى
+            $specialties = Specialty::with(['hospitals.medicalServices'])->get();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Specialties retrieved successfully - Updated',
+                'message' => 'Specialties with hospitals and services retrieved',
                 'data' => $specialties
             ], 200);
         } catch (\Exception $e) {
@@ -101,39 +66,14 @@ class HomeController extends Controller
     }
 
     /**
-     * تفاصيل مستشفى محددة
-     */
-    public function show($id)
-    {
-        $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])
-                            ->find($id);
-
-        if (!$hospital) {
-            return response()->json([
-                'status' => false, 
-                'message' => 'المستشفى غير موجودة'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Hospital details retrieved successfully',
-            'data' => $hospital
-        ], 200);
-    }
-
-    /**
-     * البحث عن مستشفيات
+     * البحث عن مستشفيات - شامل الخدمات والتخصصات
      */
     public function search(Request $request)
     {
         $query = $request->get('query');
 
         if (!$query) {
-            return response()->json([
-                'status' => false, 
-                'message' => 'برجاء إدخال كلمة للبحث'
-            ], 400);
+            return response()->json(['status' => false, 'message' => 'برجاء إدخال كلمة للبحث'], 400);
         }
 
         $hospitals = Hospital::where('is_active', true)
@@ -144,7 +84,8 @@ class HomeController extends Controller
                               $sq->where('name', 'LIKE', "%{$query}%");
                           });
                     })
-                    ->with(['specialties'])
+                    // ضفنا medicalServices عشان تظهر في نتائج البحث
+                    ->with(['specialties', 'medicalServices'])
                     ->get();
 
         return response()->json([
@@ -152,6 +93,39 @@ class HomeController extends Controller
             'count'  => $hospitals->count(),
             'data'   => $hospitals
         ], 200);
+    }
+
+    /**
+     * جلب كل المستشفيات النشطة
+     */
+    public function allHospitals()
+    {
+        try {
+            $hospitals = Hospital::where('is_active', true)
+                                ->with(['specialties', 'medicalServices'])
+                                ->get();
+
+            return response()->json([
+                'status' => true,
+                'data'   => $hospitals
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * تفاصيل مستشفى محددة
+     */
+    public function show($id)
+    {
+        $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
+
+        if (!$hospital) {
+            return response()->json(['status' => false, 'message' => 'المستشفى غير موجودة'], 404);
+        }
+
+        return response()->json(['status' => true, 'data' => $hospital], 200);
     }
 
     /**
@@ -163,25 +137,18 @@ class HomeController extends Controller
         $userLng = $request->lng;
 
         if (!$userLat || !$userLng) {
-            return response()->json([
-                'status' => false, 
-                'message' => 'Coordinates (lat, lng) are required'
-            ], 400);
+            return response()->json(['status' => false, 'message' => 'Coordinates required'], 400);
         }
 
         $nearestHospitals = Hospital::selectRaw("*, 
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
             ->where('is_active', true)
-            ->with(['specialties']) 
+            ->with(['specialties', 'medicalServices']) // ضفنا الخدمات هنا برضه
             ->orderBy('distance')
             ->take(10)
             ->get();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Nearest hospitals retrieved successfully',
-            'data' => $nearestHospitals
-        ], 200);
+        return response()->json(['status' => true, 'data' => $nearestHospitals], 200);
     }
 }
