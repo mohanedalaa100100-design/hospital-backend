@@ -4,30 +4,20 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Hospital;
-use App\Models\specialty; 
 use Illuminate\Support\Facades\Schema;
 
 class HospitalSeeder extends Seeder
 {
     public function run(): void
     {
+        // 1. تنظيف جدول المستشفيات قبل البدء
         Schema::disableForeignKeyConstraints();
         Hospital::truncate();
-        specialty::truncate();
         Schema::enableForeignKeyConstraints();
 
-        $specialtiesList = [
-            'Cardiology'  => 'cardio.png',
-            'Emergency'   => 'emergency.png',
-            'Orthopedics' => 'ortho.png',
-            'Surgery'     => 'surgery.png',
-            'Pediatrics'  => 'pedia.png',
-            'Neurology'   => 'neuro.png',
-        ];
-
-    
+        // 2. قائمة الصور المتاحة
         $images = [
-            'images/hospitals/1.jpg.',
+            'images/hospitals/1.jpg',
             'images/hospitals/2.jpg',
             'images/hospitals/3.jpg',
             'images/hospitals/4.webp',
@@ -39,7 +29,7 @@ class HospitalSeeder extends Seeder
             'images/hospitals/10.jpg',
         ];
 
-        
+        // 3. قائمة المستشفيات (50 مستشفى في مختلف المحافظات)
         $hospitals = [
             // القاهرة
             ['name' => 'قصر العيني الجامعي', 'type' => 'government', 'lat' => 30.0305, 'lng' => 31.2274, 'days' => 'Saturday,Monday,Wednesday'],
@@ -129,12 +119,9 @@ class HospitalSeeder extends Seeder
 
         $imageCount = count($images);
 
+        // 4. إنشاء المستشفيات فقط (الربط بالتخصصات هيتم في الـ HospitalDetailsSeeder)
         foreach ($hospitals as $index => $data) {
-            
-            
-            $imageToSave = $images[$index % $imageCount];
-
-            $hospital = Hospital::create([
+            Hospital::create([
                 'name'           => $data['name'],
                 'type'           => $data['type'],
                 'address'        => 'مصر - ' . $data['name'],
@@ -144,20 +131,8 @@ class HospitalSeeder extends Seeder
                 'emergency_days' => $data['days'],
                 'is_active'      => true,
                 'is_featured'    => ($data['type'] === 'private'), 
-                'image_url'      => $imageToSave,
+                'image_url'      => $images[$index % $imageCount],
             ]);
-
-            $specsToAssign = ($data['type'] === 'government') 
-                ? ['Emergency', 'Surgery', 'Orthopedics'] 
-                : array_keys($specialtiesList);
-
-            foreach ($specsToAssign as $specName) {
-                specialty::create([
-                    'hospital_id' => $hospital->id,
-                    'name'        => $specName,
-                    'icon_url'    => $specialtiesList[$specName],
-                ]);
-            }
         }
     }
 }

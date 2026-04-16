@@ -4,60 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute; 
 
 class Hospital extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'address',
-        'phone',
-        'type',
-        'image_url',
-        'lat',
-        'lng',
-        'emergency_days',
-        'is_active',
-        'is_featured',
-        'rating',
-        'accreditation',
-        'whatsapp',
-        'working_hours',
-        'about'
+        'name', 'address', 'phone', 'type', 'image_url', 
+        'lat', 'lng', 'emergency_days', 'is_active', 
+        'is_featured', 'rating', 'accreditation', 
+        'whatsapp', 'working_hours', 'about'
     ];
 
-    
-    protected function imageUrl(): Attribute
-    {
-        return Attribute::make(
-            get: function ($value) {
-                if (!$value) return null;
-                
-                if (filter_var($value, FILTER_VALIDATE_URL)) {
-                    return $value;
-                }
-                
-                return asset($value);
-            },
-        );
-    }
-
-    
-     
+    // علاقة الـ Many-to-Many المظبوطة مع التخصصات
     public function specialties()
     {
-        return $this->belongsToMany(Specialty::class);
+        return $this->belongsToMany(Specialty::class, 'hospital_specialty');
     }
 
-    
+    // العلاقات التانية (One-to-Many)
     public function medicalServices()
     {
         return $this->hasMany(MedicalService::class);
     }
 
-   
     public function doctors()
     {
         return $this->hasMany(Doctor::class);

@@ -10,60 +10,77 @@ use Illuminate\Support\Facades\Storage;
 class SpecialtyAdminController extends Controller
 {
     /**
-     * عرض كل التخصصات مع المستشفيات التابعة لها
+     * عرض التخصصات بدون تكرار مع المستشفيات التابعة لها
      */
     public function index()
     {
-    
-        return response()->json(Specialty::with('hospitals')->get());
+        // بنجيب التخصصات الفريدة وكل تخصص معاه قائمة مستشفياته
+        $specialties = Specialty::with('hospitals')->get()->map(function ($item) {
+            // تظبيط رابط الصورة لو مش URL كامل
+            if ($item->icon_url && !filter_var($item->icon_url, FILTER_VALIDATE_URL)) {
+                $item->icon_url = asset('storage/' . $item->icon_url);
+            }
+            return $item;
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Specialties retrieved successfully',
+            'data' => $specialties
+        ], 200);
     }
 
     /**
-     * إضافة تخصص جديد وربطه بمستشفى
+     * إضافة تخصص (أو استخدامه لو موجود) وربطه بمستشفى
      */
     public function store(Request $request)
     {
         $request->validate([
             'hospital_id' => 'required|exists:hospitals,id',
             'name'        => 'required|string',
-            'icon'        => 'required|image|mimes:png,jpg,jpeg,svg|max:2048'
+            'icon'        => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048'
         ]);
 
-        
-        $path = $request->file('icon')->store('uploads/specialties', 'public');
+        // 1. بندور لو التخصص موجود بنفس الاسم قبل كدة
+        $specialty = Specialty::where('name', $request->name)->first();
 
-        
-        $specialty = Specialty::create([
-            'name'     => $request->name,
-            'icon_url' => asset('storage/' . $path)
-        ]);
+        if (!$specialty) {
+            // لو مش موجود، بنكريت واحد جديد ونخزن الصورة
+            $path = $request->file('icon')->store('uploads/specialties', 'public');
+            $specialty = Specialty::create([
+                'name'     => $request->name,
+                'icon_url' => $path // هنخزن المسار بس والـ Asset نظبطها في الـ Index أو الـ Model
+            ]);
+        }
 
-        $specialty->hospitals()->attach($request->hospital_id);
+        // 2. الربط في الجدول الوسيط (استخدمنا syncWithoutDetaching عشان ميحصلش تكرار للربط)
+        $specialty->hospitals()->syncWithoutDetaching([$request->hospital_id]);
 
         return response()->json([
             'status' => true,
-            'message' => 'Specialty added and linked to hospital successfully',
+            'message' => 'Specialty linked to hospital successfully',
             'data' => $specialty->load('hospitals') 
         ], 201);
     }
 
     /**
-     * حذف تخصص
+     * حذف التخصص (فك الارتباط بالمستشفيات)
      */
     public function destroy($id)
     {
         $specialty = Specialty::find($id);
         if (!$specialty) {
-            return response()->json(['message' => 'Specialty not found'], 404);
+            return response()->json(['status' => false, 'message' => 'Specialty not found'], 404);
         }
 
-        // حذف الصورة من التخزين
-        $relativeContext = str_replace(asset('storage/'), '', $specialty->icon_url);
-        Storage::disk('public')->delete($relativeContext);
+        // لو التخصص له صورة، بنمسحها
+        if ($specialty->icon_url && !filter_var($specialty->icon_url, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete($specialty->icon_url);
+        }
         
-        // الحذف من الجدول (Laravel هيمسح الروابط في الجدول الوسيط تلقائياً لو عامل cascade)
+        // حذف التخصص (الـ cascade في الداتابيز هيمسح الارتباطات في الجدول الوسيط)
         $specialty->delete();
         
-        return response()->json(['message' => 'Specialty deleted successfully']);
+        return response()->json(['status' => true, 'message' => 'Specialty deleted successfully'], 200);
     }
 }

@@ -14,17 +14,12 @@ return new class extends Migration
         Schema::create('specialties', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('hospital_id'); // ربط التخصص بالمستشفى
-            $table->string('name'); // اسم التخصص زي (Cardiology, Oncology)
+            
+            
+            $table->string('name'); // اسم التخصص زي (Cardiology, Orthopedics)
             $table->string('icon_url')->nullable(); // أيقونة التخصص
-
+            
             $table->timestamps();
-
-            // إنشاء المفتاح الخارجي
-            $table->foreign('hospital_id')
-                  ->references('id')
-                  ->on('hospitals')
-                  ->onDelete('cascade');
         });
     }
 

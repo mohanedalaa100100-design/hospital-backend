@@ -10,16 +10,27 @@ use App\Models\Specialty;
 
 class HomeController extends Controller
 {
-    
+    /**
+     * بيانات الصفحة الرئيسية
+     */
     public function index()
     {
         try {
+            // جلب التخصصات مع روابط صور كاملة للعرض في الهوم
+            $specialties = Specialty::take(10)->get()->map(function ($item) {
+                if ($item->icon_url && !filter_var($item->icon_url, FILTER_VALIDATE_URL)) {
+                    $item->icon_url = asset('storage/' . $item->icon_url);
+                }
+                return $item;
+            });
+
             return response()->json([
                 'status' => true,
                 'message' => 'Home page data retrieved successfully',
                 'data' => [
                     'hero_section'       => herosection::all(), 
                     'quick_actions'      => QuickAction::all(),
+                    'specialties'        => $specialties,
                     'featured_hospitals' => Hospital::with(['specialties'])
                                             ->where('is_featured', true)
                                             ->where('is_active', true)
@@ -36,7 +47,9 @@ class HomeController extends Controller
         }
     }
 
-   
+    /**
+     * جلب كل المستشفيات النشطة
+     */
     public function allHospitals()
     {
         try {
@@ -60,16 +73,22 @@ class HomeController extends Controller
     }
 
     /**
-     * جلب كل التخصصات 
-     * مربوط بـ GET /api/specialties
+     * جلب كل التخصصات مع المستشفيات المربوطة بها (تعديل مهند)
      */
     public function allSpecialties()
     {
         try {
-            $specialties = Specialty::all();
+            // هنا السر: استخدمنا with عشان نجيب المستشفيات و map عشان نصلح الروابط
+            $specialties = Specialty::with('hospitals')->get()->map(function ($item) {
+                if ($item->icon_url && !filter_var($item->icon_url, FILTER_VALIDATE_URL)) {
+                    $item->icon_url = asset('storage/' . $item->icon_url);
+                }
+                return $item;
+            });
+
             return response()->json([
                 'status' => true,
-                'message' => 'Specialties retrieved successfully',
+                'message' => 'Specialties retrieved successfully - Updated',
                 'data' => $specialties
             ], 200);
         } catch (\Exception $e) {
@@ -83,7 +102,6 @@ class HomeController extends Controller
 
     /**
      * تفاصيل مستشفى محددة
-     * مربوط بـ GET /api/hospitals/{id}
      */
     public function show($id)
     {
@@ -104,10 +122,9 @@ class HomeController extends Controller
         ], 200);
     }
 
-        /**
-        * البحث عن مستشفيات بناءً على اسم المستشفى، العنوان، أو التخصصات
-        * مربوط بـ GET /api/hospitals/search?query=...
-        */
+    /**
+     * البحث عن مستشفيات
+     */
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -139,7 +156,6 @@ class HomeController extends Controller
 
     /**
      * جلب أقرب مستشفيات بناءً على الـ GPS
-     * مربوط بـ GET /api/hospitals/nearest
      */
     public function findNearest(Request $request)
     {
@@ -153,7 +169,6 @@ class HomeController extends Controller
             ], 400);
         }
 
-        
         $nearestHospitals = Hospital::selectRaw("*, 
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])

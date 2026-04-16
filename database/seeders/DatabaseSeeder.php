@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. إنشاء حساب الأدمن (System Admin)
+        // 1. إنشاء حساب الأدمن
         $admin = User::updateOrCreate(
             ['email' => 'admin@hospital.com'],
             [
@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         );
         $admin->tokens()->delete();
 
-        
+        // 2. إنشاء حساب المستخدم 
         $user = User::updateOrCreate(
             ['email' => 'user@gmail.com'],
             [
@@ -37,17 +37,18 @@ class DatabaseSeeder extends Seeder
         );
         $user->tokens()->delete();
 
-        // 3. استدعاء باقي السدرز بالترتيب المنطقي
+    
         $this->call([
-            // بيانات الواجهة (Hero & Quick Actions)
-            HeroSectionSeeder::class,   // مهم جداً عشان السلايدر اللي فوق
-            QuickActionSeeder::class,    // مهم عشان زراير Emergency/Normal mode
+            
+            HeroSectionSeeder::class,   
+            QuickActionSeeder::class,    
 
-            // البيانات الأساسية (المستشفيات أولاً)
+            
             HospitalSeeder::class,
 
-            // البيانات المعتمدة على المستشفيات (التفاصيل والدكاترة)
+        
             HospitalDetailsSeeder::class,
+
             DoctorSeeder::class, 
         ]);
     }
