@@ -12,7 +12,7 @@ class HospitalDetailsSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. تنظيف الجداول عشان نمنع التكرار
+        
         Schema::disableForeignKeyConstraints();
         Specialty::truncate();
         MedicalService::truncate();
@@ -23,7 +23,7 @@ class HospitalDetailsSeeder extends Seeder
             return;
         }
 
-        // 2. قائمة التخصصات الـ 6 الأساسية (زي ما في الـ UI بالظبط)
+        
         $specialtiesList = [
             ['name' => 'Cardiology', 'icon' => 'cardio.png'],
             ['name' => 'Orthopedics', 'icon' => 'ortho.png'],
@@ -33,7 +33,7 @@ class HospitalDetailsSeeder extends Seeder
             ['name' => 'Neurology', 'icon' => 'neuro.png'],
         ];
 
-        // 3. إنشاء التخصصات الـ 6
+        
         foreach ($specialtiesList as $specialtyData) {
             Specialty::create([
                 'name' => $specialtyData['name'],
@@ -43,13 +43,13 @@ class HospitalDetailsSeeder extends Seeder
 
         $allSpecialties = Specialty::all();
 
-        // 4. الخدمات الـ 6 (2 Supportive + 4 Facilities) عشان شروق تقسمهم
+        
         $servicesList = [
-            // Supportive Medical Services
+            
             ['name' => 'ICU CARE', 'desc' => 'Intensive Monitoring'],
             ['name' => 'Laboratory', 'desc' => 'Advanced Diagnostics'],
             
-            // Facilities & Services
+            
             ['name' => 'Private Rooms', 'desc' => 'Equipped with Wi-Fi and TV'],
             ['name' => 'On-site Amenities', 'desc' => 'Pharmacy, ATM, and Cafe'],
             ['name' => '24/7 Pharmacy', 'desc' => 'Emergency Medications'],
@@ -57,19 +57,19 @@ class HospitalDetailsSeeder extends Seeder
         ];
 
         foreach ($hospitals as $hospital) {
-            // تحديث بيانات المستشفى الأساسية
+            
             $hospital->update([
-                'rating' => 4.2, // خليته ثابت زي التصميم أو ممكن تخليه راندوم
+                'rating' => fake()->randomFloat(1, 4, 5),
                 'accreditation' => 'JCI Accredited',
-                'whatsapp' => '01100216370', // الرقم اللي في التصميم
+                'whatsapp' => '01' . fake()->numberBetween(10000000, 99999999),
                 'working_hours' => 'Available 24/7',
                 'about' => "WELCOME TO {$hospital->name}\nExcellence in Medical Care."
             ]);
 
-            // ربط كل التخصصات الـ 6 بالمستشفى عشان يظهروا كلهم
+            
             $hospital->specialties()->sync($allSpecialties->pluck('id')->toArray());
 
-            // إضافة الـ 6 خدمات لكل مستشفى
+            
             foreach ($servicesList as $service) {
                 MedicalService::create([
                     'hospital_id' => $hospital->id,

@@ -6,43 +6,46 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon; 
 
 class AppointmentController extends Controller
 {
-    
     public function store(Request $request)
     {
-        // 1. التحقق من البيانات المرسلة
+        
         $request->validate([
             'doctor_id'        => 'required|exists:doctors,id',
             'hospital_id'      => 'required|exists:hospitals,id',
-            'appointment_date' => 'required|date|after_or_equal:today', // التأكد إن التاريخ مش قديم
+            'appointment_date' => 'required|date|after_or_equal:today', 
             'appointment_time' => 'required',
             'patient_name'     => 'required|string|max:255',
             'patient_phone'    => 'required|string|min:11',
         ]);
 
-        
-        $exists = Appointment::where('doctor_id', $request->doctor_id)
-            ->where('appointment_date', $request->appointment_date)
-            ->where('appointment_time', $request->appointment_time)
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'عفواً، هذا الموعد محجوز مسبقاً عند هذا الطبيب، يرجى اختيار موعد آخر'
-            ], 400);
-        }
-
-    
         try {
+            
+            $formattedTime = Carbon::parse($request->appointment_time)->format('H:i:s');
+
+            // 3. التأكد من عدم تكرار الموعد لنفس الدكتور في نفس الوقت
+            $exists = Appointment::where('doctor_id', $request->doctor_id)
+                ->where('appointment_date', $request->appointment_date)
+                ->where('appointment_time', $formattedTime)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'عفواً، هذا الموعد محجوز مسبقاً عند هذا الطبيب، يرجى اختيار موعد آخر'
+                ], 400);
+            }
+
+            // 4. إنشاء الحجز
             $appointment = Appointment::create([
                 'user_id'          => Auth::id(), 
                 'doctor_id'        => $request->doctor_id,
                 'hospital_id'      => $request->hospital_id,
                 'appointment_date' => $request->appointment_date,
-                'appointment_time' => $request->appointment_time,
+                'appointment_time' => $formattedTime, 
                 'patient_name'     => $request->patient_name,
                 'patient_phone'    => $request->patient_phone,
                 'status'           => 'pending',
@@ -51,19 +54,18 @@ class AppointmentController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'تم تسجيل طلب الحجز بنجاح، سيتم التواصل معك للتأكيد',
-                'data' => $appointment->load(['doctor', 'hospital']) // تحميل البيانات لعرضها فوراً للفرونت
+                'data' => $appointment->load(['doctor', 'hospital']) 
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'حدث خطأ أثناء تسجيل الحجز',
+                'message' => 'حدث خطأ أثناء تسجيل الحجز، تأكد من تنسيق الوقت الصحيح',
                 'error' => $e->getMessage()
             ], 500);
         }
     }
 
-    
     public function myAppointments()
     {
         $appointments = Appointment::with(['doctor', 'hospital'])
@@ -80,7 +82,7 @@ class AppointmentController extends Controller
 
     public function destroy($id)
     {
-        // البحث عن الحجز الخاص باليوزر المسجل فقط لضمان الأمان
+        // التأكد إن اليوزر بيمسح حجزه هو بس
         $appointment = Appointment::where('user_id', Auth::id())->find($id);
 
         if (!$appointment) {
