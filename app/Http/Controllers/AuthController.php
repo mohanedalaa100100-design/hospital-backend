@@ -100,7 +100,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ================= باقي الميثودز (Profile, ForgotPassword, الخ) زي ما هي بدون تغيير =================
+    // ================= باقي الميثودز (Profile, ForgotPassword) =================
     public function userProfile(Request $request)
     {
         $user = User::with('medicalProfile')->find(Auth::id());

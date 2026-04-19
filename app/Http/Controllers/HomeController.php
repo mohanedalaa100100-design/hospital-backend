@@ -10,9 +10,7 @@ use App\Models\Specialty;
 
 class HomeController extends Controller
 {
-    /**
-     * بيانات الصفحة الرئيسية
-     */
+    
     public function index()
     {
         try {
@@ -84,7 +82,7 @@ class HomeController extends Controller
                               $sq->where('name', 'LIKE', "%{$query}%");
                           });
                     })
-                    // ضفنا medicalServices عشان تظهر في نتائج البحث
+                
                     ->with(['specialties', 'medicalServices'])
                     ->get();
 
@@ -95,9 +93,7 @@ class HomeController extends Controller
         ], 200);
     }
 
-    /**
-     * جلب كل المستشفيات النشطة
-     */
+    
     public function allHospitals()
     {
         try {
@@ -114,9 +110,6 @@ class HomeController extends Controller
         }
     }
 
-    /**
-     * تفاصيل مستشفى محددة
-     */
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -128,9 +121,6 @@ class HomeController extends Controller
         return response()->json(['status' => true, 'data' => $hospital], 200);
     }
 
-    /**
-     * جلب أقرب مستشفيات بناءً على الـ GPS
-     */
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;

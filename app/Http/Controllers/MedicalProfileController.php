@@ -28,12 +28,10 @@ class MedicalProfileController extends Controller
         ], 200);
     }
 
-    /**
-     * حفظ أو تعديل البيانات (عشان شاشة الـ No وزرار Edit)
-     */
+    
     public function store(Request $request)
     {
-        // 1. مرحلة الـ Validation: تأكد إن الداتا مطابقة لمتطلبات الطوارئ
+        
         $request->validate([
             'full_name'         => 'required|string|max:255',
             'age'               => 'required|integer|min:1|max:120',
@@ -42,12 +40,12 @@ class MedicalProfileController extends Controller
             'chronic_diseases'  => 'nullable|string',
             'allergies'         => 'nullable|string',
             'special_condition' => 'nullable|string',
-            'emergency_phone'   => 'nullable|string', // إضافة رقم طوارئ إضافي
+            'emergency_phone'   => 'nullable|string', 
         ]);
 
-        // 2. مرحلة الحفظ: استخدام updateOrCreate لضمان وجود سجل واحد لكل مستخدم
+        
         $profile = MedicalProfile::updateOrCreate(
-            ['user_id' => Auth::id()], // شرط البحث بالـ User ID الخاص بالتوكن
+            ['user_id' => Auth::id()], 
             [
                 'full_name'         => $request->full_name,
                 'age'               => $request->age,

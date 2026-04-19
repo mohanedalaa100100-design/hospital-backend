@@ -33,7 +33,7 @@ class EmergencyRequestController extends Controller
        
         $user = Auth::guard('sanctum')->user(); 
 
-        // البحث عن أقرب مستشفى (حكومي في يوم طوارئه أو خاص متاح دايماً)
+        // البحث عن أقرب مستشفى
         $nearestHospital = Hospital::select('id', 'name', 'lat', 'lng', 'address', 'type')
             ->selectRaw("(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
@@ -55,7 +55,7 @@ class EmergencyRequestController extends Controller
             ], 404);
         }
 
-        // جلب البروفايل الطبي لو اليوزر مسجل دخول
+        
         $medicalProfile = $user ? $user->medicalProfile : null;
 
         // إنشاء طلب الاستغاثة
@@ -81,10 +81,7 @@ class EmergencyRequestController extends Controller
         ], 201);
     }
 
-    /**
-     * جلب تاريخ استغاثات المستخدم الحالي
-     * مربوط بـ GET /api/emergency/my-requests
-     */
+    
     public function userRequests()
     {
         $requests = EmergencyRequest::with('hospital')
