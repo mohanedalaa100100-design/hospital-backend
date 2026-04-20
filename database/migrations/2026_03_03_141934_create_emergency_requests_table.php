@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('emergency_requests', function (Blueprint $table) {
-            $table->id();
+        Schema::create('emergency_requests', function (Blueprint $request) {
+            $request->id();
+            $request->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $request->foreignId('hospital_id')->constrained('hospitals')->onDelete('cascade');
             
             
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $request->string('guest_name')->nullable();
+            $request->string('guest_phone')->nullable();
             
-            $table->foreignId('hospital_id')->nullable()->constrained()->onDelete('set null');
-            $table->decimal('user_lat', 10, 8);
-            $table->decimal('user_lng', 11, 8);
-            $table->string('status')->default('pending');
-            $table->text('note')->nullable();
-            $table->timestamps();
+            $request->decimal('lat', 10, 8);
+            $request->decimal('lng', 11, 8);
+            $request->text('note')->nullable();
+            $request->enum('status', ['pending', 'accepted', 'completed', 'cancelled'])->default('pending');
+            $request->timestamps();
         });
     }
 

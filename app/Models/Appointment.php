@@ -14,32 +14,30 @@ class Appointment extends Model
         'doctor_id',
         'hospital_id',
         'appointment_date',
+        'appointment_day',  
         'appointment_time',
+        'time_slot',        
         'patient_name',
         'patient_phone',
+        'doc_fees',         
+        'service_fees',     
+        'total_amount',    
+        'payment_method',   
         'status',
         'notes'
     ];
 
-    /**
-     * الموعد ينتمي لمستخدم (المريض اللي عامل Login)
-     */
+    
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * الموعد ينتمي لدكتور معين
-     */
     public function doctor()
     {
         return $this->belongsTo(Doctor::class);
     }
 
-    /**
-     * الموعد يتم في مستشفى معينة
-     */
     public function hospital()
     {
         return $this->belongsTo(Hospital::class);

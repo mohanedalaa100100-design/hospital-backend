@@ -9,29 +9,25 @@ class EmergencyRequest extends Model
 {
     use HasFactory;
 
-    /**
-     * الحقول المسموح بتخزينها (Mass Assignment)
-     */
+  
     protected $fillable = [
-        'user_id', 
+        'user_id',       
         'hospital_id', 
-        'user_lat', 
-        'user_lng', 
+        'lat',           
+        'lng', 
+        'guest_name',    
+        'guest_phone',   
         'status', 
         'note'
     ];
 
-    /**
-     * علاقة الطلب بالمستخدم (المريض)
-     */
+  
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * علاقة الطلب بالمستشفى المختارة
-     */
+    
     public function hospital()
     {
         return $this->belongsTo(Hospital::class);

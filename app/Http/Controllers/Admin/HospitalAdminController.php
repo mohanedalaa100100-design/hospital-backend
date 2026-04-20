@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Hospital;
 use App\Models\Specialty; 
+use App\Models\Doctor; 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB; 
 
@@ -13,7 +14,8 @@ class HospitalAdminController extends Controller
 {
     public function index()
     {
-        return response()->json(Hospital::with(['specialties', 'medicalServices'])->get(), 200);
+        
+        return response()->json(Hospital::with(['specialties', 'medicalServices', 'doctors'])->get(), 200);
     }
 
     public function store(Request $request)
@@ -25,13 +27,13 @@ class HospitalAdminController extends Controller
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
             'is_featured' => 'boolean',
-            'specialties' => 'nullable|array',
+            'specialties' => 'nullable|array', 
             'services'    => 'nullable|array'
         ]);
 
         return DB::transaction(function () use ($request, $validated) {
             
-            // رفع الصورة وتخزين المسار
+    
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '.' . $image->getClientOriginalExtension();
@@ -39,27 +41,51 @@ class HospitalAdminController extends Controller
                 $validated['image_url'] = 'uploads/hospitals/' . $imageName;
             }
 
-            // إنشاء المستشفى
+            
             $hospital = Hospital::create($validated);
 
-            // 1. ربط التخصصات (نظام Many-to-Many صح)
+            
+            $maleAvatar = 'images/doctors/male_avatar.png';
+            $femaleAvatar = 'images/doctors/female_avatar.png';
+
+            
             if ($request->has('specialties')) {
                 foreach ($request->specialties as $specialtyName) {
-                    // ابحث عن التخصص بالاسم، لو موجود هاته، لو مش موجود كريته
+                    
                     $specialty = Specialty::firstOrCreate(
                         ['name' => $specialtyName],
-                        ['icon_url' => 'default_icon.png'] // أيقونة افتراضية
+                        ['icon_url' => 'default_icon.png']
                     );
                     
-                    // اربط المستشفى بالتخصص في الجدول الوسيط (البيفوت)
+                    
                     $hospital->specialties()->syncWithoutDetaching([$specialty->id]);
+
+                    
+                    $autoDoctors = [
+                        ['is_female' => false], 
+                        ['is_female' => true],  
+                    ];
+
+                    foreach ($autoDoctors as $docType) {
+                        Doctor::create([
+                            'hospital_id'      => $hospital->id,
+                            'specialty_id'     => $specialty->id, // الربط بالـ ID الجديد
+                            'name'             => 'Dr. ' . fake()->name($docType['is_female'] ? 'female' : 'male'),
+                            'title'            => 'Specialist ' . $specialtyName,
+                            'experience_years' => rand(5, 15),
+                            'bio'              => "Experienced specialist in {$specialtyName} at {$hospital->name}.",
+                            'rating'           => 5.0,
+                            'reviews_count'    => 0,
+                            'consultation_fee' => rand(200, 500),
+                            'image'            => $docType['is_female'] ? $femaleAvatar : $maleAvatar,
+                        ]);
+                    }
                 }
             }
 
-            // 2. إضافة الخدمات الطبية
+            
             if ($request->has('services')) {
                 foreach ($request->services as $serviceName) {
-                    // بنفترض هنا إن الخدمات تابعة لكل مستشفى لوحدها One-to-Many
                     $hospital->medicalServices()->create([
                         'name' => $serviceName,
                     ]);
@@ -68,8 +94,8 @@ class HospitalAdminController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم إضافة المستشفى وتخصصاتها وخدماتها بنجاح',
-                'hospital' => $hospital->load(['specialties', 'medicalServices'])
+                'message' => 'تم إضافة المستشفى وتخصصاتها ودكاترتها بنجاح',
+                'hospital' => $hospital->load(['specialties', 'medicalServices', 'doctors'])
             ], 201);
         });
     }

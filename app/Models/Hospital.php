@@ -16,7 +16,6 @@ class Hospital extends Model
         'whatsapp', 'working_hours', 'about'
     ];
 
-    
     protected $casts = [
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
@@ -24,6 +23,9 @@ class Hospital extends Model
         'lat' => 'double',
         'lng' => 'double',
     ];
+
+    
+    protected $appends = ['image_url']; 
 
     public function specialties()
     {
@@ -47,13 +49,13 @@ class Hospital extends Model
             return asset('images/hospitals/default.jpg');
         }
 
+        
         return filter_var($value, FILTER_VALIDATE_URL) ? $value : asset($value);
     }
 
     
-     
     public function getRatingAttribute($value)
     {
-        return number_format((float) ($value ?? 0.0), 1);
+        return (float) ($value ?? 0.0);
     }
 }

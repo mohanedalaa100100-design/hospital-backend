@@ -11,21 +11,29 @@ return new class extends Migration
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
             
-            // الربط مع الجداول التانية (Foreign Keys)
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // صاحب الحساب
-            $table->foreignId('doctor_id')->constrained()->onDelete('cascade'); // الدكتور
-            $table->foreignId('hospital_id')->constrained()->onDelete('cascade'); // المستشفى
             
-            // بيانات الموعد
-            $table->date('appointment_date'); // يوم الحجز
-            $table->time('appointment_time'); // ساعة الحجز
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('doctor_id')->constrained()->onDelete('cascade');
+            $table->foreignId('hospital_id')->constrained()->onDelete('cascade');
             
-            // بيانات المريض (ممكن يحجز لنفسه أو لحد غيره)
+            
+            $table->date('appointment_date');            
+            $table->string('appointment_day');          
+            $table->string('appointment_time');         
+            $table->string('time_slot')->default('morning'); 
+            
+            
             $table->string('patient_name');
             $table->string('patient_phone');
             
-            // حالة الحجز
-            $table->string('status')->default('pending'); // (pending, confirmed, cancelled)
+            
+            $table->decimal('doc_fees', 8, 2);         
+            $table->decimal('service_fees', 8, 2)->default(20.00);
+            $table->decimal('total_amount', 8, 2);     
+            
+            
+            $table->string('payment_method')->default('hospital'); 
+            $table->string('status')->default('pending');         
             $table->text('notes')->nullable(); 
             
             $table->timestamps();

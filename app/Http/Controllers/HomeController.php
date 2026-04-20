@@ -7,10 +7,11 @@ use App\Models\Hospital;
 use App\Models\herosection;
 use App\Models\QuickAction;
 use App\Models\Specialty;
+use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-    
+   
     public function index()
     {
         try {
@@ -23,7 +24,6 @@ class HomeController extends Controller
                     'hero_section'       => herosection::all(), 
                     'quick_actions'      => QuickAction::all(),
                     'specialties'        => $specialties,
-                    // ضفنا medicalServices هنا برضه عشان تظهر في الهوم
                     'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
                                             ->where('is_featured', true)
                                             ->where('is_active', true)
@@ -40,18 +40,30 @@ class HomeController extends Controller
         }
     }
 
-    /**
-     * جلب كل التخصصات مع المستشفيات والخدمات (التعديل المهم)
-     */
+   
     public function allSpecialties()
     {
         try {
-            // "hospitals.medicalServices" هي اللي بتجيب الخدمات اللي جوه كل مستشفى
-            $specialties = Specialty::with(['hospitals.medicalServices'])->get();
+            $specialties = Specialty::with(['doctors' => function($query) {
+                $query->where('is_available', true)
+                      ->select(
+                          'id', 
+                          'specialty_id', 
+                          'hospital_id', 
+                          'name', 
+                          'title', 
+                          'experience_years', 
+                          'rating', 
+                          'consultation_fee', 
+                          'available_slots', 
+                          'working_days',    
+                          'image'
+                      );
+            }])->get();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Specialties with hospitals and services retrieved',
+                'message' => 'Specialties with doctors and slots retrieved successfully',
                 'data' => $specialties
             ], 200);
         } catch (\Exception $e) {
@@ -63,9 +75,7 @@ class HomeController extends Controller
         }
     }
 
-    /**
-     * البحث عن مستشفيات - شامل الخدمات والتخصصات
-     */
+   
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -82,7 +92,6 @@ class HomeController extends Controller
                               $sq->where('name', 'LIKE', "%{$query}%");
                           });
                     })
-                
                     ->with(['specialties', 'medicalServices'])
                     ->get();
 
@@ -93,7 +102,6 @@ class HomeController extends Controller
         ], 200);
     }
 
-    
     public function allHospitals()
     {
         try {
@@ -110,6 +118,7 @@ class HomeController extends Controller
         }
     }
 
+   
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -121,6 +130,7 @@ class HomeController extends Controller
         return response()->json(['status' => true, 'data' => $hospital], 200);
     }
 
+    
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
@@ -134,7 +144,7 @@ class HomeController extends Controller
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
             [$userLat, $userLng, $userLat])
             ->where('is_active', true)
-            ->with(['specialties', 'medicalServices']) // ضفنا الخدمات هنا برضه
+            ->with(['specialties', 'medicalServices'])
             ->orderBy('distance')
             ->take(10)
             ->get();

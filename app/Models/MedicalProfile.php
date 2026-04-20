@@ -9,7 +9,6 @@ class MedicalProfile extends Model
 {
     use HasFactory;
 
-    
     protected $fillable = [
         'user_id',
         'full_name',
@@ -21,9 +20,22 @@ class MedicalProfile extends Model
         'special_condition'
     ];
 
+
+    protected $casts = [
+        'chronic_diseases' => 'array', 
+        'allergies'        => 'array',
+        'age'              => 'integer',
+    ];
+
     
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    
+    public function getBloodTypeAttribute($value)
+    {
+        return strtoupper($value);
     }
 }
