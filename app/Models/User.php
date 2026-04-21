@@ -16,44 +16,37 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'role', 
+        'role',
         'otp',
-        'is_verified', 
+        'is_verified',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
-        'otp', 
+        'otp',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'is_verified' => 'boolean',
+        'password'          => 'hashed',
+        'is_verified'       => 'boolean',
     ];
 
-    
     public function medicalProfile()
     {
         return $this->hasOne(MedicalProfile::class);
     }
 
-    
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
     }
 
-    
     public function emergencyRequests()
     {
         return $this->hasMany(EmergencyRequest::class);
     }
 
     
-    public function hospital()
-    {
-        return $this->hasOne(Hospital::class, 'admin_id'); 
-    }
 }

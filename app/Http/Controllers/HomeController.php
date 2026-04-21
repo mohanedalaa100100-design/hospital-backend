@@ -4,24 +4,23 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Hospital;
-use App\Models\herosection;
+use App\Models\HeroSection;
 use App\Models\QuickAction;
 use App\Models\Specialty;
 use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-   
     public function index()
     {
         try {
             $specialties = Specialty::take(10)->get();
 
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => 'Home page data retrieved successfully',
-                'data' => [
-                    'hero_section'       => herosection::all(), 
+                'data'    => [
+                    'hero_section'       => HeroSection::all(),
                     'quick_actions'      => QuickAction::all(),
                     'specialties'        => $specialties,
                     'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
@@ -33,55 +32,56 @@ class HomeController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Error loading home page',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
 
-   
     public function allSpecialties()
     {
         try {
             $specialties = Specialty::with(['doctors' => function($query) {
                 $query->where('is_available', true)
                       ->select(
-                          'id', 
-                          'specialty_id', 
-                          'hospital_id', 
-                          'name', 
-                          'title', 
-                          'experience_years', 
-                          'rating', 
-                          'consultation_fee', 
-                          'available_slots', 
-                          'working_days',    
+                          'id',
+                          'specialty_id',
+                          'hospital_id',
+                          'name',
+                          'title',
+                          'experience_years',
+                          'rating',
+                          'consultation_fee',
+                          'available_slots',
+                          'working_days',
                           'image'
                       );
             }])->get();
 
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => 'Specialties with doctors and slots retrieved successfully',
-                'data' => $specialties
+                'data'    => $specialties
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Error fetching specialties',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
 
-   
     public function search(Request $request)
     {
         $query = $request->get('query');
 
         if (!$query) {
-            return response()->json(['status' => false, 'message' => 'برجاء إدخال كلمة للبحث'], 400);
+            return response()->json([
+                'status'  => false,
+                'message' => 'برجاء إدخال كلمة للبحث'
+            ], 400);
         }
 
         $hospitals = Hospital::where('is_active', true)
@@ -114,34 +114,44 @@ class HomeController extends Controller
                 'data'   => $hospitals
             ], 200);
         } catch (\Exception $e) {
-            return response()->json(['status' => false, 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => false,
+                'error'  => $e->getMessage()
+            ], 500);
         }
     }
 
-   
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
 
         if (!$hospital) {
-            return response()->json(['status' => false, 'message' => 'المستشفى غير موجودة'], 404);
+            return response()->json([
+                'status'  => false,
+                'message' => 'المستشفى غير موجودة'
+            ], 404);
         }
 
-        return response()->json(['status' => true, 'data' => $hospital], 200);
+        return response()->json([
+            'status' => true,
+            'data'   => $hospital
+        ], 200);
     }
 
-    
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
         $userLng = $request->lng;
 
         if (!$userLat || !$userLng) {
-            return response()->json(['status' => false, 'message' => 'Coordinates required'], 400);
+            return response()->json([
+                'status'  => false,
+                'message' => 'Coordinates required'
+            ], 400);
         }
 
-        $nearestHospitals = Hospital::selectRaw("*, 
-            (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance", 
+        $nearestHospitals = Hospital::selectRaw("*,
+            (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
             [$userLat, $userLng, $userLat])
             ->where('is_active', true)
             ->with(['specialties', 'medicalServices'])
@@ -149,6 +159,9 @@ class HomeController extends Controller
             ->take(10)
             ->get();
 
-        return response()->json(['status' => true, 'data' => $nearestHospitals], 200);
+        return response()->json([
+            'status' => true,
+            'data'   => $nearestHospitals
+        ], 200);
     }
 }

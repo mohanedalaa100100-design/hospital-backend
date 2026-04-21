@@ -17,23 +17,21 @@ class MedicalProfile extends Model
         'blood_type',
         'chronic_diseases',
         'allergies',
-        'special_condition'
+        'special_condition',
+        'emergency_phone', // ✅ مضاف
     ];
 
-
     protected $casts = [
-        'chronic_diseases' => 'array', 
+        'chronic_diseases' => 'array',
         'allergies'        => 'array',
         'age'              => 'integer',
     ];
 
-    
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    
     public function getBloodTypeAttribute($value)
     {
         return strtoupper($value);
