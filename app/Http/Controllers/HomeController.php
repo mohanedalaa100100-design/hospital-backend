@@ -157,7 +157,14 @@ class HomeController extends Controller
             ->with(['specialties', 'medicalServices'])
             ->orderBy('distance')
             ->take(10)
-            ->get();
+            ->get()
+            ->map(function($hospital) {
+                // ✅ تنسيق المسافة
+                $hospital->distance_km     = round($hospital->distance, 1) . ' km';
+                $hospital->distance_meters = round($hospital->distance * 1000) . ' m';
+                $hospital->eta_minutes     = round(($hospital->distance / 30) * 60) . ' min';
+                return $hospital;
+            });
 
         return response()->json([
             'status' => true,

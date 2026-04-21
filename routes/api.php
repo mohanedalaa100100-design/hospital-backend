@@ -7,6 +7,7 @@ use App\Http\Controllers\MedicalProfileController;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\AiDiagnosisController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +24,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // 2. مسارات الصفحة الرئيسية والبيانات العامة
 Route::get('/home-page', [HomeController::class, 'index']); 
-Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); // تم التعديل ليطابق طلب الفرونت
+Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
 Route::get('/hospitals', [HomeController::class, 'allHospitals']); 
 Route::get('/hospitals/nearest', [HomeController::class, 'findNearest']); 
 Route::get('/hospitals/search', [HomeController::class, 'search']); 
@@ -49,9 +50,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // مواعيد الحجز
     Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']); 
+    // تم استخدام السطر اللي طلبته هنا ليكون محمي بـ Sanctum
     Route::post('/appointments/book', [AppointmentController::class, 'store']); 
     Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']); 
 
     // استغاثات المستخدم المسجل
     Route::get('/emergency/my-requests', [EmergencyRequestController::class, 'userRequests']); 
+
+    // تشخيص الذكاء الاصطناعي (AI Diagnosis)
+    Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']); 
 });
