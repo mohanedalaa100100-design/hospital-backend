@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\URL;
 
 class Hospital extends Model
 {
@@ -24,21 +25,29 @@ class Hospital extends Model
         'lng'         => 'double',
     ];
 
-    
-
+   
     public function getImageUrlAttribute($value)
     {
+        
         if (!$value) {
-            return asset('images/hospitals/default.jpg');
+            return url('images/hospitals/default.jpg');
         }
-        return filter_var($value, FILTER_VALIDATE_URL) ? $value : asset($value);
+
+        
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        return url($value);
     }
 
+   
     public function getRatingAttribute($value)
     {
         return (float) ($value ?? 0.0);
     }
 
+   
     public function specialties()
     {
         return $this->belongsToMany(Specialty::class, 'hospital_specialty');
