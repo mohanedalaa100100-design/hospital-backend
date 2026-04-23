@@ -8,6 +8,9 @@ use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\AiDiagnosisController;
+use App\Http\Controllers\Admin\HospitalAdminController;
+use App\Http\Controllers\Admin\AppointmentAdminController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,19 +28,29 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // 2. مسارات الصفحة الرئيسية والبيانات العامة
 Route::get('/home-page', [HomeController::class, 'index']); 
 Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
-Route::get('/hospitals', [HomeController::class, 'allHospitals']); 
-Route::get('/hospitals/nearest', [HomeController::class, 'findNearest']); 
-Route::get('/hospitals/search', [HomeController::class, 'search']); 
-Route::get('/hospitals/{id}', [HomeController::class, 'show']);
+
+// مسارات المستشفيات
+Route::prefix('hospitals')->group(function () {
+    Route::get('/', [HomeController::class, 'allHospitals']); 
+    Route::get('/nearest', [HomeController::class, 'findNearest']); 
+    Route::get('/search', [HomeController::class, 'search']);
+    Route::get('/{id}', [HomeController::class, 'show']);
+});
+
+// اختصار للبحث
+Route::get('/search', [HomeController::class, 'search']); 
 
 // 3. عرض الدكاترة وبياناتهم
 Route::get('/doctors', [DoctorController::class, 'index']); 
 Route::get('/doctors/{id}', [DoctorController::class, 'show']); 
 
-// 4. طلب استغاثة سريع (يدعم الزائر والمسجل)
+// 4. طلب استغاثة سريع
 Route::post('/emergency/quick-send', [EmergencyRequestController::class, 'quickSend']); 
 
-// 5. المسارات المحمية (تطلب تسجيل دخول)
+// 5. تشخيص الذكاء الاصطناعي
+Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']); 
+
+// 6. المسارات المحمية (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     
     // بروفايل المستخدم
@@ -48,15 +61,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/medical-profile', [MedicalProfileController::class, 'show']); 
     Route::post('/medical-profile', [MedicalProfileController::class, 'store']); 
 
-    // مواعيد الحجز
+    // مواعيد المستخدم
     Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']); 
-    // تم استخدام السطر اللي طلبته هنا ليكون محمي بـ Sanctum
     Route::post('/appointments/book', [AppointmentController::class, 'store']); 
     Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']); 
 
-    // استغاثات المستخدم المسجل
+    // استغاثات المستخدم
     Route::get('/emergency/my-requests', [EmergencyRequestController::class, 'userRequests']); 
 
-    // تشخيص الذكاء الاصطناعي (AI Diagnosis)
-    Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']); 
+    // ======================================
+    // 7. مسارات Admin (محمية بـ Sanctum)
+    // ======================================
+    
+    // Dashboard
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
+    
+    // Hospital Management
+    Route::prefix('admin/hospitals')->group(function () {
+        Route::get('/', [HospitalAdminController::class, 'index']);
+        Route::post('/', [HospitalAdminController::class, 'store']);
+        Route::put('{id}', [HospitalAdminController::class, 'update']);
+        Route::delete('{id}', [HospitalAdminController::class, 'destroy']);
+        Route::get('{id}', [HospitalAdminController::class, 'show']);
+    });
+    
+    // Appointments Management
+    Route::prefix('admin/appointments')->group(function () {
+        Route::get('/', [AppointmentAdminController::class, 'index']);
+        Route::put('{id}', [AppointmentAdminController::class, 'update']);
+        Route::delete('{id}', [AppointmentAdminController::class, 'destroy']);
+        Route::get('{id}', [AppointmentAdminController::class, 'show']);
+    });
 });

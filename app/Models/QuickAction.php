@@ -17,7 +17,6 @@ class QuickAction extends Model
         'type'         
     ];
 
-
     protected function imageUrl(): Attribute
     {
         return Attribute::make(
@@ -29,8 +28,7 @@ class QuickAction extends Model
                     return $value;
                 }
 
-            
-                return asset('images/quick_actions/' . $value);
+                return url('images/quick_actions/' . $value);
             },
         );
     }

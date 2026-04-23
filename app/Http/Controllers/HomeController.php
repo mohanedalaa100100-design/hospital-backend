@@ -11,10 +11,12 @@ use App\Models\Doctor;
 
 class HomeController extends Controller
 {
+   
     public function index()
     {
         try {
-            $specialties = Specialty::take(10)->get();
+            
+            $specialties = Specialty::select('id', 'name', 'icon_url')->take(10)->get();
 
             return response()->json([
                 'status'  => true,
@@ -23,9 +25,10 @@ class HomeController extends Controller
                     'hero_section'       => HeroSection::all(),
                     'quick_actions'      => QuickAction::all(),
                     'specialties'        => $specialties,
-                    'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
+                    'featured_hospitals' => Hospital::with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
                                             ->where('is_featured', true)
                                             ->where('is_active', true)
+                                            ->select('id', 'name', 'address', 'image_url', 'rating', 'type', 'accreditation', 'emergency_days')
                                             ->take(6)
                                             ->get()
                 ]
@@ -39,29 +42,23 @@ class HomeController extends Controller
         }
     }
 
+   
     public function allSpecialties()
     {
         try {
             $specialties = Specialty::with(['doctors' => function($query) {
                 $query->where('is_available', true)
                       ->select(
-                          'id',
-                          'specialty_id',
-                          'hospital_id',
-                          'name',
-                          'title',
-                          'experience_years',
-                          'rating',
-                          'consultation_fee',
-                          'available_slots',
-                          'working_days',
-                          'image'
+                          'id', 'specialty_id', 'hospital_id', 'name', 
+                          'title', 'experience_years', 'rating', 
+                          'consultation_fee', 'available_slots', 
+                          'working_days', 'image'
                       );
             }])->get();
 
             return response()->json([
                 'status'  => true,
-                'message' => 'Specialties with doctors and slots retrieved successfully',
+                'message' => 'Specialties with doctors retrieved successfully',
                 'data'    => $specialties
             ], 200);
         } catch (\Exception $e) {
@@ -73,6 +70,7 @@ class HomeController extends Controller
         }
     }
 
+   
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -92,7 +90,7 @@ class HomeController extends Controller
                               $sq->where('name', 'LIKE', "%{$query}%");
                           });
                     })
-                    ->with(['specialties', 'medicalServices'])
+                    ->with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
                     ->get();
 
         return response()->json([
@@ -102,6 +100,7 @@ class HomeController extends Controller
         ], 200);
     }
 
+  
     public function allHospitals()
     {
         try {
@@ -121,6 +120,7 @@ class HomeController extends Controller
         }
     }
 
+  
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -138,6 +138,7 @@ class HomeController extends Controller
         ], 200);
     }
 
+   
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
@@ -150,6 +151,7 @@ class HomeController extends Controller
             ], 400);
         }
 
+        
         $nearestHospitals = Hospital::selectRaw("*,
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
             [$userLat, $userLng, $userLat])
@@ -159,7 +161,6 @@ class HomeController extends Controller
             ->take(10)
             ->get()
             ->map(function($hospital) {
-                // ✅ تنسيق المسافة
                 $hospital->distance_km     = round($hospital->distance, 1) . ' km';
                 $hospital->distance_meters = round($hospital->distance * 1000) . ' m';
                 $hospital->eta_minutes     = round(($hospital->distance / 30) * 60) . ' min';

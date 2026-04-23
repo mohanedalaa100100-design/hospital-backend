@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute; 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Doctor extends Model
 {
@@ -27,7 +27,6 @@ class Doctor extends Model
         'is_available'
     ];
 
-  
     protected $casts = [
         'available_slots' => 'array', 
         'working_days'    => 'array', 
@@ -35,31 +34,32 @@ class Doctor extends Model
         'rating'          => 'decimal:2',
     ];
 
-   
+
     protected function image(): Attribute
     {
         return Attribute::make(
             get: function ($value) {
-                if (!$value) return null;
+                
+                if (!$value) {
+                    return url('images/doctors/male_avatar.png');
+                }
                 
                 
                 if (filter_var($value, FILTER_VALIDATE_URL)) {
                     return $value;
                 }
                 
-                
-                return asset($value);
+              
+                return url($value);
             },
         );
     }
 
-   
     public function hospital()
     {
         return $this->belongsTo(Hospital::class);
     }
 
-   
     public function specialty()
     {
         return $this->belongsTo(Specialty::class, 'specialty_id');

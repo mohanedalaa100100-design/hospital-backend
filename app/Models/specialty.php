@@ -12,14 +12,21 @@ class Specialty extends Model
 
     protected $fillable = ['name', 'icon_url'];
 
-    
     protected function iconUrl(): Attribute
     {
         return Attribute::make(
             get: function ($value) {
-                if (!$value) return null;
-                if (filter_var($value, FILTER_VALIDATE_URL)) return $value;
-                return asset('images/specialties/' . $value);
+                if (!$value) {
+                    return url('images/specialties/default.png');
+                }
+                
+            
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    return $value;
+                }
+
+               
+                return url('images/specialties/' . $value);
             },
         );
     }
