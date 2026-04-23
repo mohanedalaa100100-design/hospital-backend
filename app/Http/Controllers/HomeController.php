@@ -11,28 +11,31 @@ use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-   
+    // الصفحة الرئيسية
     public function index()
     {
         try {
-            
+            // زودنا العدد لـ 10 عشان الصفحة تبان مليانة
             $specialties = Specialty::select('id', 'name', 'icon_url')->take(10)->get();
+
+            $data = [
+                'hero_section'       => HeroSection::all(),
+                'quick_actions'      => QuickAction::all(),
+                'specialties'        => $specialties,
+                'featured_hospitals' => Hospital::with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
+                                            ->where('is_featured', true)
+                                            ->where('is_active', true)
+                                            ->select('id', 'name', 'address', 'image_url', 'rating', 'type', 'accreditation', 'emergency_days')
+                                            ->take(10) 
+                                            ->get()
+            ];
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Home page data retrieved successfully',
-                'data'    => [
-                    'hero_section'       => HeroSection::all(),
-                    'quick_actions'      => QuickAction::all(),
-                    'specialties'        => $specialties,
-                    'featured_hospitals' => Hospital::with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
-                                            ->where('is_featured', true)
-                                            ->where('is_active', true)
-                                            ->select('id', 'name', 'address', 'image_url', 'rating', 'type', 'accreditation', 'emergency_days')
-                                            ->take(6)
-                                            ->get()
-                ]
-            ], 200);
+                'data'    => $data
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
@@ -42,7 +45,7 @@ class HomeController extends Controller
         }
     }
 
-   
+    // عرض كل التخصصات مع الدكاترة
     public function allSpecialties()
     {
         try {
@@ -53,14 +56,15 @@ class HomeController extends Controller
                           'title', 'experience_years', 'rating', 
                           'consultation_fee', 'available_slots', 
                           'working_days', 'image'
-                      );
+                      )->take(10);
             }])->get();
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Specialties with doctors retrieved successfully',
                 'data'    => $specialties
-            ], 200);
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
@@ -70,7 +74,7 @@ class HomeController extends Controller
         }
     }
 
-   
+    // البحث عن المستشفيات
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -97,10 +101,10 @@ class HomeController extends Controller
             'status' => true,
             'count'  => $hospitals->count(),
             'data'   => $hospitals
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-  
+    // عرض كل المستشفيات
     public function allHospitals()
     {
         try {
@@ -111,7 +115,8 @@ class HomeController extends Controller
             return response()->json([
                 'status' => true,
                 'data'   => $hospitals
-            ], 200);
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -120,7 +125,7 @@ class HomeController extends Controller
         }
     }
 
-  
+    // تفاصيل مستشفى محددة
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -135,10 +140,10 @@ class HomeController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $hospital
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-   
+    // أقرب المستشفيات بناءً على اللوكيشن
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
@@ -151,7 +156,6 @@ class HomeController extends Controller
             ], 400);
         }
 
-        
         $nearestHospitals = Hospital::selectRaw("*,
             (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
             [$userLat, $userLng, $userLat])
@@ -170,6 +174,6 @@ class HomeController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $nearestHospitals
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 }

@@ -18,7 +18,7 @@ class MedicalProfile extends Model
         'chronic_diseases',
         'allergies',
         'special_condition',
-        'emergency_phone', // ✅ مضاف
+        'emergency_phone',
     ];
 
     protected $casts = [

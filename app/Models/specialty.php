@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Specialty extends Model
 {
@@ -12,23 +11,18 @@ class Specialty extends Model
 
     protected $fillable = ['name', 'icon_url'];
 
-    protected function iconUrl(): Attribute
+  
+    public function getIconUrlAttribute($value)
     {
-        return Attribute::make(
-            get: function ($value) {
-                if (!$value) {
-                    return url('images/specialties/default.png');
-                }
-                
-            
-                if (filter_var($value, FILTER_VALIDATE_URL)) {
-                    return $value;
-                }
+    
+        if (!$value) {
+            return asset('images/specialties/stethoscope.png');
+        }
 
-               
-                return url('images/specialties/' . $value);
-            },
-        );
+        $fileName = basename($value);
+
+    
+        return asset('images/specialties/' . $fileName);
     }
 
     public function hospitals()

@@ -31,7 +31,7 @@ class HospitalAdminController extends Controller
             'status' => true,
             'total'  => Hospital::count(),
             'data'   => $query->paginate(10)
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     
@@ -43,13 +43,13 @@ class HospitalAdminController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Hospital not found'
-            ], 404);
+            ], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
         return response()->json([
             'status' => true,
             'data'   => $hospital
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     
@@ -127,7 +127,7 @@ class HospitalAdminController extends Controller
                 'status' => true,
                 'message' => 'Hospital created successfully',
                 'hospital' => $hospital->load(['specialties', 'medicalServices', 'doctors'])
-            ], 201);
+            ], 201, [], JSON_UNESCAPED_SLASHES);
         });
     }
 
@@ -137,7 +137,7 @@ class HospitalAdminController extends Controller
         $hospital = Hospital::find($id);
 
         if (!$hospital) {
-            return response()->json(['status' => false, 'message' => 'Hospital not found'], 404);
+            return response()->json(['status' => false, 'message' => 'Hospital not found'], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
         $validated = $request->validate([
@@ -160,7 +160,7 @@ class HospitalAdminController extends Controller
             'status'  => true,
             'message' => 'Hospital updated successfully',
             'data'    => $hospital->load(['specialties', 'medicalServices'])
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     
@@ -169,7 +169,7 @@ class HospitalAdminController extends Controller
         $hospital = Hospital::find($id);
 
         if (!$hospital) {
-            return response()->json(['status' => false, 'message' => 'Hospital not found'], 404);
+            return response()->json(['status' => false, 'message' => 'Hospital not found'], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
         $hospital->delete();
@@ -177,6 +177,6 @@ class HospitalAdminController extends Controller
         return response()->json([
             'status'  => true,
             'message' => 'Hospital deleted successfully'
-        ], 200);
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 }
