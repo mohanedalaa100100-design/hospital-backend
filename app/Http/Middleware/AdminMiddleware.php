@@ -10,8 +10,7 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // طالما الروت عليه auth:sanctum
-        // يبقى المستخدم مسجل دخول بالفعل
+        
         if (!$request->user() || !$request->user()->is_admin) {
             return response()->json([
                 'status' => false,

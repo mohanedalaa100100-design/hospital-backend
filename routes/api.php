@@ -18,22 +18,21 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 |--------------------------------------------------------------------------
 */
 
-// 1. مسارات المصادقة (Auth)
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// 2. مسارات الصفحة الرئيسية والبيانات العامة
+
 Route::get('/home-page', [HomeController::class, 'index']); 
 Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
 
-// مسار عرض تخصص واحد محدد (الجديد اللي طلبته)
-// الروابط هتكون: api/specialties/1 أو api/specialties/2
+
 Route::get('/specialties/{id}', [HomeController::class, 'showSpecialty']);
 
-// مسارات المستشفيات
+
 Route::prefix('hospitals')->group(function () {
     Route::get('/', [HomeController::class, 'allHospitals']); 
     Route::get('/nearest', [HomeController::class, 'findNearest']); 
@@ -41,36 +40,36 @@ Route::prefix('hospitals')->group(function () {
     Route::get('/{id}', [HomeController::class, 'show']);
 });
 
-// اختصار للبحث
+
 Route::get('/search', [HomeController::class, 'search']); 
 
-// 3. عرض الدكاترة وبياناتهم
+
 Route::get('/doctors', [DoctorController::class, 'index']); 
 Route::get('/doctors/{id}', [DoctorController::class, 'show']); 
 
-// 4. طلب استغاثة 
+
 Route::post('/emergency/quick-send', [EmergencyRequestController::class, 'quickSend']); 
 
-// 5. تشخيص الذكاء الاصطناعي
+
 Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']); 
 
 
 Route::middleware('auth:sanctum')->group(function () {
     
-    // بروفايل المستخدم
+    
     Route::get('/user', [AuthController::class, 'userProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // الملف الطبي
+    
     Route::get('/medical-profile', [MedicalProfileController::class, 'show']); 
     Route::post('/medical-profile', [MedicalProfileController::class, 'store']); 
 
-    // مواعيد المستخدم
+    
     Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']); 
     Route::post('/appointments/book', [AppointmentController::class, 'store']); 
     Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']); 
 
-    // استغاثات المستخدم
+    
     Route::get('/emergency/my-requests', [EmergencyRequestController::class, 'userRequests']); 
 
     
