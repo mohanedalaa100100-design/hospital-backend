@@ -11,11 +11,10 @@ use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-    
+    // 1. الصفحة الرئيسية
     public function index()
     {
         try {
-            
             $specialties = Specialty::withCount('hospitals')->get();
 
             $data = [
@@ -44,7 +43,7 @@ class HomeController extends Controller
         }
     }
 
-    
+    // 2. عرض كل التخصصات
     public function allSpecialties()
     {
         try {
@@ -68,13 +67,14 @@ class HomeController extends Controller
         }
     }
 
-    
+    // 3. عرض تخصص محدد مع بيانات المستشفى لكل دكتور
     public function showSpecialty($id)
     {
         try {
             $specialty = Specialty::withCount('hospitals')
                 ->with(['doctors' => function($query) {
-                    $query->where('is_available', true);
+                    // تم التعديل لـ image_url ليتطابق مع الـ Migration الخاص بك
+                    $query->where('is_available', true)->with('hospital:id,name,image_url');
                 }])
                 ->find($id);
 
@@ -100,7 +100,7 @@ class HomeController extends Controller
         }
     }
 
-    
+    // 4. البحث عن المستشفيات
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -130,7 +130,7 @@ class HomeController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    
+    // 5. عرض كل المستشفيات
     public function allHospitals()
     {
         try {
@@ -151,7 +151,7 @@ class HomeController extends Controller
         }
     }
 
-    
+    // 6. تفاصيل مستشفى محددة
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -169,7 +169,7 @@ class HomeController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    
+    // 7. أقرب المستشفيات
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;
