@@ -43,13 +43,14 @@ class HomeController extends Controller
         }
     }
 
-    // 2. عرض كل التخصصات
+    // 2. عرض كل التخصصات (تم التحديث لجلب بيانات المستشفيات مع الدكاترة)
     public function allSpecialties()
     {
         try {
             $specialties = Specialty::withCount('hospitals')
                 ->with(['doctors' => function($query) {
-                    $query->where('is_available', true);
+                    // سحب بيانات المستشفى (الاسم والصورة) مع كل دكتور متاح
+                    $query->where('is_available', true)->with('hospital:id,name,image_url');
                 }])->get();
 
             return response()->json([
@@ -73,7 +74,7 @@ class HomeController extends Controller
         try {
             $specialty = Specialty::withCount('hospitals')
                 ->with(['doctors' => function($query) {
-                    // تم التعديل لـ image_url ليتطابق مع الـ Migration الخاص بك
+                    // سحب بيانات المستشفى مع كل دكتور في هذا التخصص
                     $query->where('is_available', true)->with('hospital:id,name,image_url');
                 }])
                 ->find($id);
