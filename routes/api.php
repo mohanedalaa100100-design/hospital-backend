@@ -29,6 +29,10 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/home-page', [HomeController::class, 'index']); 
 Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
 
+// مسار عرض تخصص واحد محدد (الجديد اللي طلبته)
+// الروابط هتكون: api/specialties/1 أو api/specialties/2
+Route::get('/specialties/{id}', [HomeController::class, 'showSpecialty']);
+
 // مسارات المستشفيات
 Route::prefix('hospitals')->group(function () {
     Route::get('/', [HomeController::class, 'allHospitals']); 
@@ -44,13 +48,13 @@ Route::get('/search', [HomeController::class, 'search']);
 Route::get('/doctors', [DoctorController::class, 'index']); 
 Route::get('/doctors/{id}', [DoctorController::class, 'show']); 
 
-// 4. طلب استغاثة سريع
+// 4. طلب استغاثة 
 Route::post('/emergency/quick-send', [EmergencyRequestController::class, 'quickSend']); 
 
 // 5. تشخيص الذكاء الاصطناعي
 Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']); 
 
-// 6. المسارات المحمية (Sanctum)
+
 Route::middleware('auth:sanctum')->group(function () {
     
     // بروفايل المستخدم
@@ -69,9 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // استغاثات المستخدم
     Route::get('/emergency/my-requests', [EmergencyRequestController::class, 'userRequests']); 
 
-    // ======================================
-    // 7. مسارات Admin (محمية بـ Sanctum)
-    // ======================================
+    
+    // Admin
     
     // Dashboard
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);

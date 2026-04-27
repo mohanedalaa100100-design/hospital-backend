@@ -11,21 +11,20 @@ use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-    // الصفحة الرئيسية
+    
     public function index()
     {
         try {
-            // زودنا العدد لـ 10 عشان الصفحة تبان مليانة
-            $specialties = Specialty::select('id', 'name', 'icon_url')->take(10)->get();
+            
+            $specialties = Specialty::withCount('hospitals')->get();
 
             $data = [
                 'hero_section'       => HeroSection::all(),
                 'quick_actions'      => QuickAction::all(),
                 'specialties'        => $specialties,
-                'featured_hospitals' => Hospital::with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
+                'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
                                             ->where('is_featured', true)
                                             ->where('is_active', true)
-                                            ->select('id', 'name', 'address', 'image_url', 'rating', 'type', 'accreditation', 'emergency_days')
                                             ->take(10) 
                                             ->get()
             ];
@@ -45,23 +44,18 @@ class HomeController extends Controller
         }
     }
 
-    // عرض كل التخصصات مع الدكاترة
+    
     public function allSpecialties()
     {
         try {
-            $specialties = Specialty::with(['doctors' => function($query) {
-                $query->where('is_available', true)
-                      ->select(
-                          'id', 'specialty_id', 'hospital_id', 'name', 
-                          'title', 'experience_years', 'rating', 
-                          'consultation_fee', 'available_slots', 
-                          'working_days', 'image'
-                      )->take(10);
-            }])->get();
+            $specialties = Specialty::withCount('hospitals')
+                ->with(['doctors' => function($query) {
+                    $query->where('is_available', true);
+                }])->get();
 
             return response()->json([
                 'status'  => true,
-                'message' => 'Specialties with doctors retrieved successfully',
+                'message' => 'Specialties with doctors and hospital counts retrieved successfully',
                 'data'    => $specialties
             ], 200, [], JSON_UNESCAPED_SLASHES);
 
@@ -74,7 +68,39 @@ class HomeController extends Controller
         }
     }
 
-    // البحث عن المستشفيات
+    
+    public function showSpecialty($id)
+    {
+        try {
+            $specialty = Specialty::withCount('hospitals')
+                ->with(['doctors' => function($query) {
+                    $query->where('is_available', true);
+                }])
+                ->find($id);
+
+            if (!$specialty) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'التخصص غير موجود'
+                ], 404);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Specialty details retrieved successfully',
+                'data'    => $specialty
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Error fetching specialty',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    
     public function search(Request $request)
     {
         $query = $request->get('query');
@@ -94,7 +120,7 @@ class HomeController extends Controller
                               $sq->where('name', 'LIKE', "%{$query}%");
                           });
                     })
-                    ->with(['specialties:id,name', 'medicalServices:id,hospital_id,name'])
+                    ->with(['specialties', 'medicalServices'])
                     ->get();
 
         return response()->json([
@@ -104,7 +130,7 @@ class HomeController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // عرض كل المستشفيات
+    
     public function allHospitals()
     {
         try {
@@ -125,7 +151,7 @@ class HomeController extends Controller
         }
     }
 
-    // تفاصيل مستشفى محددة
+    
     public function show($id)
     {
         $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
@@ -143,7 +169,7 @@ class HomeController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // أقرب المستشفيات بناءً على اللوكيشن
+    
     public function findNearest(Request $request)
     {
         $userLat = $request->lat;

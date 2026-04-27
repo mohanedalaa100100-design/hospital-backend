@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use App\Models\Doctor;
 use App\Models\Hospital;
 use App\Models\Specialty;
@@ -11,6 +12,12 @@ class DoctorSeeder extends Seeder
 {
     public function run(): void
     {
+        
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('hospital_specialty')->truncate();
+        Doctor::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $maleAvatar   = 'images/doctors/male_avatar.png';
         $femaleAvatar = 'images/doctors/female_avatar.png';
 
@@ -21,82 +28,68 @@ class DoctorSeeder extends Seeder
         $allSlots = ['09:00 AM', '10:00 AM', '11:30 AM', '01:00 PM', '03:00 PM', '04:30 PM', '06:00 PM', '08:00 PM'];
         $allDays  = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-        $specialtiesNames = [
-            'Cardiology', 'Dentistry', 'Neurology',
-            'Orthopedics', 'Pediatrics', 'Ophthalmology'
+    
+        $specialtiesData = [
+            'Cardiology'        => 11,
+            'Orthopedics'       => 11,
+            'Neurology'         => 11,
+            'Oncology'          => 10,
+            'Internal Medicine' => 10,
+            'Kidney Transplant' => 10,
         ];
 
         $hospitals = Hospital::all();
         if ($hospitals->isEmpty()) return;
 
-        foreach ($hospitals as $index => $hospital) {
-            $specIndex = floor($index / 10);
-            if ($specIndex >= count($specialtiesNames)) $specIndex = count($specialtiesNames) - 1;
-            $currentSpecName = $specialtiesNames[$specIndex];
+        
+        Specialty::whereNotIn('name', array_keys($specialtiesData))->delete();
+
+        $hospitalIndex = 0;
+
+        foreach ($specialtiesData as $specName => $limit) {
+            
+            $iconName = strtolower(str_replace(' ', '_', $specName)) . '.png';
+            if($specName == 'Cardiology') $iconName = 'heart.png';
+            if($specName == 'Orthopedics') $iconName = 'bones.png';
+            if($specName == 'Internal Medicine') $iconName = 'stethscope.png';
+            if($specName == 'Kidney Transplant') $iconName = 'kidneys.png';
 
             $specialty = Specialty::firstOrCreate(
-                ['name' => $currentSpecName],
-                ['icon_url' => 'default_icon.png']
+                ['name' => $specName],
+                ['icon_url' => $iconName]
             );
 
             
-            $hospital->specialties()->syncWithoutDetaching([$specialty->id]);
+            for ($i = 0; $i < $limit; $i++) {
+                if (isset($hospitals[$hospitalIndex])) {
+                    $hospital = $hospitals[$hospitalIndex];
+                    
+                    
+                    $hospital->specialties()->sync([$specialty->id]);
 
-            for ($i = 1; $i <= 3; $i++) {
-                $isFemale = ($i == 3);
-                $fName    = $isFemale ? fake()->randomElement($femaleNames) : fake()->randomElement($maleNames);
-                $lName    = fake()->randomElement($lastNames);
+                    
+                    for ($d = 1; $d <= 3; $d++) {
+                        $isFemale = ($d == 3);
+                        $fName    = $isFemale ? fake()->randomElement($femaleNames) : fake()->randomElement($maleNames);
+                        $lName    = fake()->randomElement($lastNames);
 
-                Doctor::create([
-                    'hospital_id'      => $hospital->id,
-                    'specialty_id'     => $specialty->id,
-                    'name'             => 'Dr. ' . $fName . ' ' . $lName,
-                    'title'            => 'Consultant ' . $currentSpecName,
-                    'experience_years' => rand(5, 20),
-                    'bio'              => "Expert professional in {$currentSpecName} with extensive experience.",
-                    'image'            => $isFemale ? $femaleAvatar : $maleAvatar,
-                    'consultation_fee' => fake()->randomElement([250, 350, 500, 600]),
-                    'available_slots'  => fake()->randomElements($allSlots, rand(2, 4)),
-                    'working_days'     => fake()->randomElements($allDays, rand(2, 4)),
-                    'is_available'     => true,
-                ]);
+                        Doctor::create([
+                            'hospital_id'      => $hospital->id,
+                            'specialty_id'     => $specialty->id,
+                            'name'             => 'Dr. ' . $fName . ' ' . $lName,
+                            'title'            => 'Consultant ' . $specName,
+                            'experience_years' => rand(5, 20),
+                            'bio'              => "Expert professional in {$specName} with extensive experience.",
+                            'image'            => $isFemale ? $femaleAvatar : $maleAvatar,
+                            'consultation_fee' => fake()->randomElement([250, 350, 500, 600]),
+                            'available_slots'  => fake()->randomElements($allSlots, rand(2, 4)),
+                            'working_days'     => fake()->randomElements($allDays, rand(2, 4)),
+                            'is_available'     => true,
+                        ]);
+                    }
+                    $hospitalIndex++;
+                }
             }
         }
-
-        $this->seedManualDoctors($hospitals->first()->id, $maleAvatar, $femaleAvatar);
-    }
-
-    private function seedManualDoctors($hospitalId, $maleAvatar, $femaleAvatar)
-    {
-        $hospital = Hospital::find($hospitalId);
-        $cardio   = Specialty::firstOrCreate(['name' => 'Cardiology']);
-        $pedia    = Specialty::firstOrCreate(['name' => 'Pediatrics']);
-
-        
-        $hospital->specialties()->syncWithoutDetaching([$cardio->id, $pedia->id]);
-
-        Doctor::updateOrCreate(['name' => 'Dr. Ahmed Hassan'], [
-            'hospital_id'      => $hospitalId,
-            'specialty_id'     => $cardio->id,
-            'title'            => 'Senior Cardiologist',
-            'experience_years' => 15,
-            'image'            => $maleAvatar,
-            'consultation_fee' => 450,
-            'available_slots'  => ['10:00 AM', '01:00 PM', '04:00 PM'],
-            'working_days'     => ['Sat', 'Mon', 'Wed'],
-            'is_available'     => true,
-        ]);
-
-        Doctor::updateOrCreate(['name' => 'Dr. Sarah Mansour'], [
-            'hospital_id'      => $hospitalId,
-            'specialty_id'     => $pedia->id,
-            'title'            => 'Pediatric Consultant',
-            'experience_years' => 10,
-            'image'            => $femaleAvatar,
-            'consultation_fee' => 380,
-            'available_slots'  => ['09:00 AM', '11:30 AM', '03:00 PM'],
-            'working_days'     => ['Sun', 'Tue', 'Thu'],
-            'is_available'     => true,
-        ]);
     }
 }
