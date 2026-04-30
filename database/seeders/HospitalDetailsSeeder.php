@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Hospital;
 use App\Models\Specialty;      
 use App\Models\MedicalService; 
+use App\Models\Clinic; 
 use Illuminate\Support\Facades\Schema;
 
 class HospitalDetailsSeeder extends Seeder
@@ -15,6 +16,7 @@ class HospitalDetailsSeeder extends Seeder
         Schema::disableForeignKeyConstraints();
         Specialty::truncate();
         MedicalService::truncate();
+        Clinic::truncate(); 
         Schema::enableForeignKeyConstraints();
 
         $hospitals = Hospital::all();
@@ -25,12 +27,12 @@ class HospitalDetailsSeeder extends Seeder
 
         
         $specialtiesList = [
-            ['name' => 'Cardiology', 'icon' => 'heart.png'],
-            ['name' => 'Orthopedics', 'icon' => 'bones.png'],
-            ['name' => 'Oncology', 'icon' => 'oncology.png'],
-            ['name' => 'Internal Medicine', 'icon' => 'stethoscope.png'],
-            ['name' => 'Kidney Transplant', 'icon' => 'kidneys.png'],
-            ['name' => 'Neurology', 'icon' => 'neurology.png'],
+            ['name' => 'Cardiology', 'icon' => 'images/specialties/heart.png'],
+            ['name' => 'Orthopedics', 'icon' => 'images/specialties/bones.png'],
+            ['name' => 'Oncology', 'icon' => 'images/specialties/oncology.png'],
+            ['name' => 'Internal Medicine', 'icon' => 'images/specialties/stethoscope.png'],
+            ['name' => 'Kidney Transplant', 'icon' => 'images/specialties/kidneys.png'],
+            ['name' => 'Neurology', 'icon' => 'images/specialties/neurology.png'],
         ];
 
         foreach ($specialtiesList as $specialtyData) {
@@ -41,8 +43,6 @@ class HospitalDetailsSeeder extends Seeder
         }
 
         $allSpecialties = Specialty::all();
-        
-    
         $shuffledHospitals = $hospitals->shuffle();
 
         
@@ -51,19 +51,39 @@ class HospitalDetailsSeeder extends Seeder
             $slice = $shuffledHospitals->slice($index * 10, 10);
             
             foreach ($slice as $hospital) {
+                
                 $hospital->specialties()->syncWithoutDetaching([$specialty->id]);
+
+                Clinic::updateOrCreate([
+                    'hospital_id'  => $hospital->id,
+                    'specialty_id' => $specialty->id,
+                ], [
+                    'name'         => "{$specialty->name} Clinic - {$hospital->name}",
+                    'address'      => $hospital->address,
+                    'phone'        => $hospital->phone,
+                    'is_active'    => true,
+                ]);
             }
         }
 
-        
         $remainingHospitals = $shuffledHospitals->slice(60);
         foreach ($remainingHospitals as $hospital) {
-            
-            $randomSpecs = $allSpecialties->random(2)->pluck('id')->toArray();
-            $hospital->specialties()->syncWithoutDetaching($randomSpecs);
+            $randomSpecs = $allSpecialties->random(2);
+            foreach ($randomSpecs as $spec) {
+                $hospital->specialties()->syncWithoutDetaching([$spec->id]);
+
+                Clinic::updateOrCreate([
+                    'hospital_id'  => $hospital->id,
+                    'specialty_id' => $spec->id,
+                ], [
+                    'name'         => "{$spec->name} Clinic - {$hospital->name}",
+                    'address'      => $hospital->address,
+                    'phone'        => $hospital->phone,
+                    'is_active'    => true,
+                ]);
+            }
         }
 
-        
         $servicesList = [
             ['name' => 'ICU CARE', 'desc' => 'Intensive Monitoring'],
             ['name' => 'Laboratory', 'desc' => 'Advanced Diagnostics'],
@@ -90,6 +110,6 @@ class HospitalDetailsSeeder extends Seeder
             }
         }
 
-        $this->command->info('63 Hospitals updated: 60 with unique specialties and 3 with mixed.');
+        $this->command->info('Seed completed: Hospitals, Specialties, and Clinics created successfully.');
     }
 }

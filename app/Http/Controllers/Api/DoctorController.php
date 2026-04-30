@@ -10,17 +10,28 @@ class DoctorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Doctor::with(['hospital', 'specialty']);
+        
+        $query = Doctor::with(['clinic.hospital', 'specialty']);
 
         
-        if ($request->has('specialty')) {
+        if ($request->has('specialty_id')) {
+            $query->where('specialty_id', $request->specialty_id);
+        } elseif ($request->has('specialty')) {
             $query->whereHas('specialty', function($q) use ($request) {
                 $q->where('name', $request->specialty);
             });
         }
 
+        
+        if ($request->has('clinic_id')) {
+            $query->where('clinic_id', $request->clinic_id);
+        }
+
+        
         if ($request->has('hospital_id')) {
-            $query->where('hospital_id', $request->hospital_id);
+            $query->whereHas('clinic', function($q) use ($request) {
+                $q->where('hospital_id', $request->hospital_id);
+            });
         }
 
         $doctors = $query->get();
@@ -35,7 +46,8 @@ class DoctorController extends Controller
 
     public function show($id)
     {
-        $doctor = Doctor::with(['hospital', 'specialty'])->find($id);
+        
+        $doctor = Doctor::with(['clinic.hospital', 'specialty'])->find($id);
 
         if (!$doctor) {
             return response()->json([

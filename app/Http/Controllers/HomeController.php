@@ -7,23 +7,22 @@ use App\Models\Hospital;
 use App\Models\HeroSection;
 use App\Models\QuickAction;
 use App\Models\Specialty;
-use App\Models\Doctor;
 
 class HomeController extends Controller
 {
-    // 1. الصفحة الرئيسية
+   
     public function index()
     {
         try {
-            $specialties = Specialty::withCount('hospitals')->get();
+            $specialties = Specialty::withCount('clinics')->get();
 
             $data = [
                 'hero_section'       => HeroSection::all(),
                 'quick_actions'      => QuickAction::all(),
                 'specialties'        => $specialties,
-                'featured_hospitals' => Hospital::with(['specialties', 'medicalServices'])
-                                            ->where('is_featured', true)
+                'featured_hospitals' => Hospital::where('is_featured', true)
                                             ->where('is_active', true)
+                                            ->with(['clinics.specialty', 'medicalServices']) 
                                             ->take(10) 
                                             ->get()
             ];
@@ -35,100 +34,8 @@ class HomeController extends Controller
             ], 200, [], JSON_UNESCAPED_SLASHES);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Error loading home page',
-                'error'   => $e->getMessage()
-            ], 500);
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
         }
-    }
-
-
-    public function allSpecialties()
-    {
-        try {
-            $specialties = Specialty::withCount('hospitals')
-                ->with(['doctors' => function($query) {
-                    
-                    $query->where('is_available', true)->with('hospital:id,name,image_url');
-                }])->get();
-
-            return response()->json([
-                'status'  => true,
-                'message' => 'Specialties with doctors and hospital counts retrieved successfully',
-                'data'    => $specialties
-            ], 200, [], JSON_UNESCAPED_SLASHES);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Error fetching specialties',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    
-    public function showSpecialty($id)
-    {
-        try {
-            $specialty = Specialty::withCount('hospitals')
-                ->with(['doctors' => function($query) {
-                    
-                    $query->where('is_available', true)->with('hospital:id,name,image_url');
-                }])
-                ->find($id);
-
-            if (!$specialty) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'التخصص غير موجود'
-                ], 404);
-            }
-
-            return response()->json([
-                'status'  => true,
-                'message' => 'Specialty details retrieved successfully',
-                'data'    => $specialty
-            ], 200, [], JSON_UNESCAPED_SLASHES);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Error fetching specialty',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    
-    public function search(Request $request)
-    {
-        $query = $request->get('query');
-
-        if (!$query) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'برجاء إدخال كلمة للبحث'
-            ], 400);
-        }
-
-        $hospitals = Hospital::where('is_active', true)
-                    ->where(function($q) use ($query) {
-                        $q->where('name', 'LIKE', "%{$query}%")
-                          ->orWhere('address', 'LIKE', "%{$query}%")
-                          ->orWhereHas('specialties', function($sq) use ($query) {
-                              $sq->where('name', 'LIKE', "%{$query}%");
-                          });
-                    })
-                    ->with(['specialties', 'medicalServices'])
-                    ->get();
-
-        return response()->json([
-            'status' => true,
-            'count'  => $hospitals->count(),
-            'data'   => $hospitals
-        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     
@@ -136,71 +43,138 @@ class HomeController extends Controller
     {
         try {
             $hospitals = Hospital::where('is_active', true)
-                                ->with(['specialties', 'medicalServices'])
-                                ->get();
+                                ->with(['clinics.specialty', 'medicalServices']) 
+                                ->paginate(10); 
 
             return response()->json([
-                'status' => true,
+                'status' => true, 
                 'data'   => $hospitals
             ], 200, [], JSON_UNESCAPED_SLASHES);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'error'  => $e->getMessage()
-            ], 500);
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
         }
     }
 
     
+    public function search(Request $request)
+    {
+        try {
+            $queryText = $request->get('query');
+
+            if (!$queryText) {
+                return response()->json(['status' => false, 'message' => 'برجاء إدخال كلمة للبحث'], 400, [], JSON_UNESCAPED_SLASHES);
+            }
+
+            $hospitals = Hospital::where('is_active', true)
+                        ->where(function($q) use ($queryText) {
+                            $q->where('name', 'LIKE', "%{$queryText}%")
+                              ->orWhere('address', 'LIKE', "%{$queryText}%")
+                              ->orWhereHas('clinics.specialty', function($sq) use ($queryText) {
+                                  $sq->where('name', 'LIKE', "%{$queryText}%");
+                              });
+                        })
+                        ->with(['clinics.specialty', 'medicalServices'])
+                        ->paginate(10);
+
+            return response()->json([
+                'status' => true, 
+                'data'   => $hospitals
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
+        }
+    }
+
+   
     public function show($id)
     {
-        $hospital = Hospital::with(['specialties', 'medicalServices', 'doctors'])->find($id);
+        try {
+            $hospital = Hospital::with(['clinics.specialty', 'clinics.doctors', 'medicalServices'])->find($id);
 
-        if (!$hospital) {
+            if (!$hospital) {
+                return response()->json(['status' => false, 'message' => 'المستشفى غير موجودة'], 404, [], JSON_UNESCAPED_SLASHES);
+            }
+
             return response()->json([
-                'status'  => false,
-                'message' => 'المستشفى غير موجودة'
-            ], 404);
-        }
+                'status' => true, 
+                'data'   => $hospital
+            ], 200, [], JSON_UNESCAPED_SLASHES);
 
-        return response()->json([
-            'status' => true,
-            'data'   => $hospital
-        ], 200, [], JSON_UNESCAPED_SLASHES);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
+        }
+    }
+
+   
+    public function allSpecialties()
+    {
+        try {
+            $specialties = Specialty::withCount('clinics')->get();
+            return response()->json([
+                'status' => true, 
+                'data'   => $specialties
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
+        }
+    }
+
+    
+    public function showSpecialty($id)
+    {
+        try {
+            $specialty = Specialty::with(['clinics.hospital' => function($q) {
+                $q->where('is_active', true);
+            }, 'clinics.doctors'])->find($id);
+
+            if (!$specialty) {
+                return response()->json(['status' => false, 'message' => 'التخصص غير موجود'], 404, [], JSON_UNESCAPED_SLASHES);
+            }
+
+            return response()->json([
+                'status' => true, 
+                'data'   => $specialty
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
+        }
     }
 
     
     public function findNearest(Request $request)
     {
-        $userLat = $request->lat;
-        $userLng = $request->lng;
+        try {
+            $userLat = $request->lat;
+            $userLng = $request->lng;
 
-        if (!$userLat || !$userLng) {
+            if (!$userLat || !$userLng) {
+                return response()->json(['status' => false, 'message' => 'Coordinates required'], 400, [], JSON_UNESCAPED_SLASHES);
+            }
+
+            $nearestHospitals = Hospital::selectRaw("*,
+                (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
+                [$userLat, $userLng, $userLat])
+                ->where('is_active', true)
+                ->with(['clinics.specialty', 'medicalServices'])
+                ->orderBy('distance')
+                ->paginate(10)
+                ->through(function($hospital) {
+                    $hospital->distance_km = round($hospital->distance, 1) . ' km';
+                    $hospital->eta_minutes = round(($hospital->distance / 30) * 60) . ' min';
+                    return $hospital;
+                });
+
             return response()->json([
-                'status'  => false,
-                'message' => 'Coordinates required'
-            ], 400);
+                'status' => true, 
+                'data'   => $nearestHospitals
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500, [], JSON_UNESCAPED_SLASHES);
         }
-
-        $nearestHospitals = Hospital::selectRaw("*,
-            (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
-            [$userLat, $userLng, $userLat])
-            ->where('is_active', true)
-            ->with(['specialties', 'medicalServices'])
-            ->orderBy('distance')
-            ->take(10)
-            ->get()
-            ->map(function($hospital) {
-                $hospital->distance_km     = round($hospital->distance, 1) . ' km';
-                $hospital->distance_meters = round($hospital->distance * 1000) . ' m';
-                $hospital->eta_minutes     = round(($hospital->distance / 30) * 60) . ' min';
-                return $hospital;
-            });
-
-        return response()->json([
-            'status' => true,
-            'data'   => $nearestHospitals
-        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 }

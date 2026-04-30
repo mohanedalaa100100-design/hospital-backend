@@ -24,15 +24,13 @@ class Hospital extends Model
         'lng'         => 'double',
     ];
 
-    
+    // Accessor لصور المستشفى
     public function getImageUrlAttribute($value)
     {
-        
         if (!$value) {
             return asset('images/hospitals/default.jpg');
         }
 
-        
         if (filter_var($value, FILTER_VALIDATE_URL)) {
             return $value;
         }
@@ -49,7 +47,17 @@ class Hospital extends Model
         return (float) ($value ?? 0.0);
     }
 
+    public function clinics()
+    {
+        return $this->hasMany(Clinic::class);
+    }
+
     
+    public function doctors()
+    {
+        return $this->hasManyThrough(Doctor::class, Clinic::class);
+    }
+
     public function specialties()
     {
         return $this->belongsToMany(Specialty::class, 'hospital_specialty');
@@ -58,11 +66,6 @@ class Hospital extends Model
     public function medicalServices()
     {
         return $this->hasMany(MedicalService::class);
-    }
-
-    public function doctors()
-    {
-        return $this->hasMany(Doctor::class);
     }
 
     public function emergencyRequests()

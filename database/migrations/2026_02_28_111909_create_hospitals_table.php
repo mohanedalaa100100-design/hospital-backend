@@ -24,7 +24,7 @@ return new class extends Migration
             $table->text('emergency_days')->nullable();
             $table->string('working_hours')->default('24/7'); //
 
-            // بيانات إضافية للبروفايل
+            
             $table->string('rating')->nullable();
             $table->string('accreditation')->nullable(); 
             $table->text('about')->nullable(); 

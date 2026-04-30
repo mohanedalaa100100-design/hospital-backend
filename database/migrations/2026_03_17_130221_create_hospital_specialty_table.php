@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('hospital_specialty', function (Blueprint $table) {
             $table->id();
 
-            // بيربط بجدول المستشفيات
+            
             $table->foreignId('hospital_id')->constrained()->onDelete('cascade');
 
-            // بيربط بجدول التخصصات
+            
             $table->foreignId('specialty_id')->constrained()->onDelete('cascade');
 
             $table->timestamps();

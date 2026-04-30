@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('hospitals', function (Blueprint $table) {
-            // مسح الأعمدة لو موجودة لتجنب أي خطأ Duplicate
+        
             $columns = ['rating', 'accreditation', 'whatsapp', 'working_hours', 'about'];
             foreach ($columns as $column) {
                 if (Schema::hasColumn('hospitals', $column)) {
@@ -19,7 +19,7 @@ return new class extends Migration
         });
 
         Schema::table('hospitals', function (Blueprint $table) {
-            // إضافة الأعمدة الجديدة
+        
             $table->string('rating')->default('4.2');
             $table->string('accreditation')->default('JCI Accredited');
             $table->string('whatsapp')->nullable();

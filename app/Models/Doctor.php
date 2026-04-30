@@ -11,7 +11,7 @@ class Doctor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'hospital_id',
+        'clinic_id',
         'specialty_id', 
         'name', 
         'title', 
@@ -28,20 +28,23 @@ class Doctor extends Model
     ];
 
     protected $casts = [
-        'available_slots' => 'array', 
-        'working_days'    => 'array', 
-        'is_available'    => 'boolean',
-        'rating'          => 'decimal:2',
+        'available_slots'  => 'array', 
+        'working_days'     => 'array', 
+        'is_available'     => 'boolean',
+        'rating'           => 'decimal:2',
+        'consultation_fee' => 'decimal:2',
+        'experience_years' => 'integer',
+        'reviews_count'    => 'integer',
     ];
 
-
+    
     protected function image(): Attribute
     {
         return Attribute::make(
             get: function ($value) {
                 
                 if (!$value) {
-                    return url('images/doctors/male_avatar.png');
+                    return asset('images/doctors/male_avatar.png');
                 }
                 
                 
@@ -49,19 +52,48 @@ class Doctor extends Model
                     return $value;
                 }
                 
-              
-                return url($value);
+                
+                return asset($value);
             },
         );
     }
 
-    public function hospital()
+    /**
+     * علاقة الدكتور بالعيادة
+     */
+    public function clinic()
     {
-        return $this->belongsTo(Hospital::class);
+        return $this->belongsTo(Clinic::class);
     }
 
+    /**
+     * علاقة الدكتور بالتخصص
+     */
     public function specialty()
     {
         return $this->belongsTo(Specialty::class, 'specialty_id');
+    }
+
+    /**
+     * الوصول للمستشفى بشكل غير مباشر من خلال العيادة
+     */
+    public function hospital()
+    {
+        return $this->hasOneThrough(
+            Hospital::class, 
+            Clinic::class, 
+            'id',           // Foreign key on Clinic table
+            'id',           // Foreign key on Hospital table
+            'clinic_id',    // Local key on Doctor table
+            'hospital_id'   // Local key on Clinic table
+        );
+    }
+
+    /**
+     * علاقة المواعيد التابعة للدكتور
+     */
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
     }
 }

@@ -12,7 +12,7 @@ class Appointment extends Model
     protected $fillable = [
         'user_id',
         'doctor_id',
-        'hospital_id',
+        'clinic_id',
         'appointment_date',
         'appointment_day',  
         'appointment_time',
@@ -27,19 +27,34 @@ class Appointment extends Model
         'notes'
     ];
 
-    
+   
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+   
     public function doctor()
     {
         return $this->belongsTo(Doctor::class);
     }
 
+  
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
+
+   
     public function hospital()
     {
-        return $this->belongsTo(Hospital::class);
+        return $this->hasOneThrough(
+            Hospital::class,
+            Clinic::class,
+            'id',         
+            'id',         
+            'clinic_id',   
+            'hospital_id'   
+        );
     }
 }

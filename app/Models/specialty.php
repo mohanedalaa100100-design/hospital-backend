@@ -14,22 +14,27 @@ class Specialty extends Model
   
     public function getIconUrlAttribute($value)
     {
-    
         if (!$value) {
             return asset('images/specialties/stethoscope.png');
         }
 
         $fileName = basename($value);
-
-    
         return asset('images/specialties/' . $fileName);
     }
 
+  
+    public function clinics()
+    {
+        return $this->hasMany(Clinic::class);
+    }
+
+    
     public function hospitals()
     {
         return $this->belongsToMany(Hospital::class, 'hospital_specialty');
     }
 
+   
     public function doctors()
     {
         return $this->hasMany(Doctor::class);

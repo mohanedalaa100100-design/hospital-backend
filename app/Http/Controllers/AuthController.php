@@ -112,7 +112,7 @@ class AuthController extends Controller
             ]
         );
 
-        // ✅ اتحذف otp_test - مش المفروض يبان في الـ response
+    
         return response()->json([
             'status'  => true,
             'message' => 'تم إرسال كود التحقق على رقم هاتفك'

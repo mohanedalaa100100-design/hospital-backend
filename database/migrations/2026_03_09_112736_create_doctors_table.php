@@ -12,13 +12,15 @@ return new class extends Migration
             $table->id();
             
             
-            $table->foreignId('hospital_id')->constrained()->onDelete('cascade');
+            $table->foreignId('clinic_id')->constrained('clinics')->onDelete('cascade');
             $table->foreignId('specialty_id')->constrained('specialties')->onDelete('cascade');
             
             $table->string('name');
-            $table->string('title');
+            $table->string('title'); 
+            $table->string('phone')->nullable();
             $table->integer('experience_years');
             $table->text('bio')->nullable();
+            
             $table->decimal('rating', 3, 2)->default(4.50);
             $table->integer('reviews_count')->default(0);
             $table->string('image')->nullable(); 

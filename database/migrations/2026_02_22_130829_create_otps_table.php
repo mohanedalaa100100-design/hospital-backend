@@ -6,23 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    
     public function up(): void
     {
         Schema::create('otps', function (Blueprint $table) {
             $table->id();
-            $table->string('email')->index();      // البريد الخاص بالمستخدم
-            $table->string('otp');                 // OTP مخزن بشكل Hash
-            $table->timestamp('expires_at');       // صلاحية الكود (مثلاً 15 دقيقة)
-            $table->timestamps();                  // created_at و updated_at
+            $table->string('email')->index();      
+            $table->string('otp');                
+            $table->timestamp('expires_at');       
+            $table->timestamps();                  
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
+   
     public function down(): void
     {
         Schema::dropIfExists('otps');

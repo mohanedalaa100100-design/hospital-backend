@@ -8,47 +8,73 @@ use Illuminate\Http\Request;
 
 class AppointmentAdminController extends Controller
 {
-    // ✅ عرض كل المواعيد
+   
     public function index(Request $request)
     {
-        $query = Appointment::with(['user', 'doctor', 'hospital']);
+        $query = Appointment::with(['user', 'doctor', 'clinic.hospital', 'clinic.specialty']);
 
-        // فلترة بالحالة
+        
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
-        // فلترة بـ hospital
+        
+        if ($request->has('clinic_id')) {
+            $query->where('clinic_id', $request->clinic_id);
+        }
+
+        
         if ($request->has('hospital_id')) {
-            $query->where('hospital_id', $request->hospital_id);
+            $query->whereHas('clinic', function($q) use ($request) {
+                $q->where('hospital_id', $request->hospital_id);
+            });
+        }
+
+        
+        if ($request->has('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
         }
 
         return response()->json([
             'status' => true,
             'total'  => Appointment::count(),
-            'data'   => $query->paginate(10)
-        ], 200);
+            'data'   => $query->orderBy('appointment_date', 'desc')->paginate(10)
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // ✅ عرض موعد واحد
+    
     public function show($id)
     {
-        $appointment = Appointment::with(['user', 'doctor', 'hospital'])->find($id);
+        $appointment = Appointment::with([
+            'user',
+            'doctor',
+            'clinic.hospital',
+            'clinic.specialty'
+        ])->find($id);
 
         if (!$appointment) {
-            return response()->json(['status' => false, 'message' => 'Appointment not found'], 404);
+            return response()->json([
+                'status'  => false,
+                'message' => 'الموعد غير موجود'
+            ], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
-        return response()->json(['status' => true, 'data' => $appointment], 200);
+        return response()->json([
+            'status' => true,
+            'data'   => $appointment
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // ✅ تعديل حالة الموعد
+    
     public function update(Request $request, $id)
     {
         $appointment = Appointment::find($id);
 
         if (!$appointment) {
-            return response()->json(['status' => false, 'message' => 'Appointment not found'], 404);
+            return response()->json([
+                'status'  => false,
+                'message' => 'الموعد غير موجود'
+            ], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
         $validated = $request->validate([
@@ -60,22 +86,28 @@ class AppointmentAdminController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Appointment updated successfully',
-            'data'    => $appointment
-        ], 200);
+            'message' => 'تم تحديث الموعد بنجاح',
+            'data'    => $appointment->load(['user', 'doctor', 'clinic.hospital', 'clinic.specialty'])
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // ✅ حذف موعد
+   
     public function destroy($id)
     {
         $appointment = Appointment::find($id);
 
         if (!$appointment) {
-            return response()->json(['status' => false, 'message' => 'Appointment not found'], 404);
+            return response()->json([
+                'status'  => false,
+                'message' => 'الموعد غير موجود'
+            ], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
         $appointment->delete();
 
-        return response()->json(['status' => true, 'message' => 'Appointment deleted successfully'], 200);
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم حذف الموعد بنجاح'
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 }

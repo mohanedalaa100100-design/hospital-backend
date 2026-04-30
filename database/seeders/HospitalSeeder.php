@@ -10,7 +10,7 @@ class HospitalSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Clear hospital table
+        
         Schema::disableForeignKeyConstraints();
         Hospital::truncate();
         Schema::enableForeignKeyConstraints();

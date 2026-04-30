@@ -18,7 +18,7 @@ class AiDiagnosisController extends Controller
             'pain_intensity'     => 'nullable|integer|min:1|max:10',
             'pain_location'      => 'nullable|string',
             'accompanying'       => 'nullable|array',
-            // بيانات الملف الطبي (اختيارية)
+            
             'blood_type'         => 'nullable|string',
             'chronic_diseases'   => 'nullable|array',
             'allergies'          => 'nullable|array',
@@ -29,9 +29,7 @@ class AiDiagnosisController extends Controller
         
             $aiResult = $this->callPythonModel($request);
 
-            // ======================================
-            // الخطوة 2: بنجيب أقرب مستشفى بالتخصص
-            // ======================================
+            
             $hospital = $this->getNearestHospitalBySpecialty(
                 $request->lat,
                 $request->lng,
@@ -42,12 +40,12 @@ class AiDiagnosisController extends Controller
             return response()->json([
                 'status' => true,
                 'data'   => [
-                    'urgency_level'        => $aiResult['urgency_level'],    // HIGH / MEDIUM / LOW
-                    'urgency_label'        => $aiResult['urgency_label'],    // HIGH ALERT / etc
-                    'specialty'            => $aiResult['specialty'],        // Cardiology
-                    'recommendation'       => $aiResult['recommendation'],   // نص التوصية
-                    'immediate_actions'    => $aiResult['immediate_actions'],// تعليمات فورية
-                    'call_ambulance'       => $aiResult['call_ambulance'],   // true / false
+                    'urgency_level'        => $aiResult['urgency_level'],  
+                    'urgency_label'        => $aiResult['urgency_label'],  
+                    'specialty'            => $aiResult['specialty'],       
+                    'recommendation'       => $aiResult['recommendation'],  
+                    'immediate_actions'    => $aiResult['immediate_actions'],
+                    'call_ambulance'       => $aiResult['call_ambulance'],   
                     'nearest_hospital'     => $hospital,
                 ]
             ], 200);
@@ -133,9 +131,6 @@ class AiDiagnosisController extends Controller
         ];
     }
 
-    // ======================================
-    // بيجيب أقرب مستشفى بالتخصص المطلوب
-    // ======================================
     private function getNearestHospitalBySpecialty($lat, $lng, $specialty)
     {
         $hospital = Hospital::selectRaw("*,
@@ -150,7 +145,7 @@ class AiDiagnosisController extends Controller
             ->first();
 
         if (!$hospital) {
-            // لو مفيش مستشفى بالتخصص ده، هنرجع أقرب مستشفى عموماً
+        
             $hospital = Hospital::selectRaw("*,
                 (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
                 [$lat, $lng, $lat])
