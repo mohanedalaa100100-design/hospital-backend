@@ -14,16 +14,16 @@ class ClinicSeeder extends Seeder
         $hospitals = Hospital::all();
         $specialties = Specialty::all();
         
-        // لو مفيش مستشفيات أو تخصصات، اخرج عشان ميطلعش Error
+        
         if ($hospitals->isEmpty() || $specialties->isEmpty()) {
             return;
         }
 
         foreach ($hospitals as $hospital) {
-            $imageIndex = 1; // بنصفر العداد مع كل مستشفى عشان الصور تتوزع بانتظام
+            $imageIndex = 1; 
 
             foreach ($specialties as $specialty) {
-                // updateOrCreate بتمنع التكرار نهائياً
+                
                 Clinic::updateOrCreate(
                     [
                         'hospital_id'  => $hospital->id,
