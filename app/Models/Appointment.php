@@ -27,6 +27,14 @@ class Appointment extends Model
         'notes'
     ];
 
+  
+    protected $casts = [
+        'appointment_date' => 'date',
+        'doc_fees'         => 'decimal:2',
+        'service_fees'     => 'decimal:2',
+        'total_amount'     => 'decimal:2',
+    ];
+
    
     public function user()
     {
@@ -39,22 +47,22 @@ class Appointment extends Model
         return $this->belongsTo(Doctor::class);
     }
 
-  
+ 
     public function clinic()
     {
         return $this->belongsTo(Clinic::class);
     }
 
-   
+  
     public function hospital()
     {
         return $this->hasOneThrough(
             Hospital::class,
             Clinic::class,
-            'id',         
-            'id',         
+            'id',  
+            'id',    
             'clinic_id',   
-            'hospital_id'   
+            'hospital_id'    
         );
     }
 }

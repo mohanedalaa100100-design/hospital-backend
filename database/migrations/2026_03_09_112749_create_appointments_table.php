@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-   
+  
     public function up(): void
     {
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
             
-            
+        
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('doctor_id')->constrained()->onDelete('cascade');
             $table->foreignId('clinic_id')->constrained('clinics')->onDelete('cascade');
@@ -27,16 +27,18 @@ return new class extends Migration
             $table->string('patient_name');
             $table->string('patient_phone');
             
-        
+            
             $table->decimal('doc_fees', 8, 2);         
             $table->decimal('service_fees', 8, 2)->default(20.00);
             $table->decimal('total_amount', 8, 2);     
             
+          
+            $table->enum('payment_method', ['clinic', 'card', 'wallet',])->nullable(); 
             
-            $table->string('payment_method')->default('clinic'); 
-            $table->string('status')->default('pending');         
+            
+            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');         
+            
             $table->text('notes')->nullable(); 
-            
             $table->timestamps();
         });
     }
