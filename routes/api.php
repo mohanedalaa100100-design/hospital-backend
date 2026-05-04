@@ -27,7 +27,6 @@ Route::get('/home-page', [HomeController::class, 'index']);
 Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
 Route::get('/specialties/{id}', [HomeController::class, 'showSpecialty']);
 
-
 Route::prefix('hospitals')->group(function () {
     Route::get('/nearest', [HomeController::class, 'findNearest']); 
     Route::get('/search', [HomeController::class, 'search']);
@@ -35,21 +34,38 @@ Route::prefix('hospitals')->group(function () {
     Route::get('/{id}', [HomeController::class, 'show']);
 });
 
-
 Route::prefix('doctors')->group(function () {
     Route::get('/', [DoctorController::class, 'index']); 
     Route::get('/{id}', [DoctorController::class, 'show']);
 });
 
 
-Route::get('/clinics', function () {
+Route::prefix('clinics')->group(function () {
     
-    $clinics = Clinic::with(['hospital', 'specialty'])->paginate(20);
+    Route::get('/', function () {
+        $clinics = Clinic::with(['hospital', 'specialty'])->paginate(20);
+        return response()->json([
+            'status' => true,
+            'data'   => $clinics
+        ]);
+    });
+
     
-    return response()->json([
-        'status' => true,
-        'data'   => $clinics
-    ]);
+    Route::get('/{id}', function ($id) {
+        $clinic = Clinic::with(['hospital', 'specialty'])->find($id);
+
+        if (!$clinic) {
+            return response()->json([
+                'status' => false,
+                'message' => 'العيادة غير موجودة'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data'   => $clinic
+        ]);
+    });
 });
 
 
@@ -59,10 +75,9 @@ Route::prefix('emergency')->group(function () {
 
 Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']);
 
-
 Route::middleware('auth:sanctum')->group(function () {
     
-    
+
     Route::get('/user', [AuthController::class, 'userProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -72,23 +87,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [MedicalProfileController::class, 'store']);
     });
 
-    
+   
     Route::prefix('appointments')->group(function () {
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::post('/book', [AppointmentController::class, 'store']);
+       
         Route::post('/{id}/pay', [AppointmentController::class, 'processPayment']);
         Route::delete('/{id}', [AppointmentController::class, 'destroy']);
     });
 
-    
+  
     Route::prefix('emergency')->group(function () {
         Route::get('/my-requests', [EmergencyRequestController::class, 'userRequests']);
     });
 
-    
+
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         
+      
         Route::prefix('hospitals')->group(function () {
             Route::get('/', [HospitalAdminController::class, 'index']);
             Route::post('/', [HospitalAdminController::class, 'store']);
@@ -97,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('{id}', [HospitalAdminController::class, 'show']);
         });
         
+      
         Route::prefix('appointments')->group(function () {
             Route::get('/', [AppointmentAdminController::class, 'index']);
             Route::put('{id}', [AppointmentAdminController::class, 'update']);
