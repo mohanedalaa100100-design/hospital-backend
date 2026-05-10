@@ -10,7 +10,7 @@ use App\Models\Specialty;
 
 class HomeController extends Controller
 {
-   
+ 
     public function index()
     {
         try {
@@ -38,7 +38,7 @@ class HomeController extends Controller
         }
     }
 
-    
+   
     public function allHospitals()
     {
         try {
@@ -56,7 +56,7 @@ class HomeController extends Controller
         }
     }
 
-    
+ 
     public function search(Request $request)
     {
         try {
@@ -87,7 +87,6 @@ class HomeController extends Controller
         }
     }
 
-   
     public function show($id)
     {
         try {
@@ -107,11 +106,17 @@ class HomeController extends Controller
         }
     }
 
-   
+  
     public function allSpecialties()
     {
         try {
-            $specialties = Specialty::withCount('clinics')->get();
+       
+            $specialties = Specialty::with(['clinics.hospital' => function($hq) {
+                $hq->where('is_active', true);
+            }])
+            ->withCount('clinics')
+            ->paginate(2);
+
             return response()->json([
                 'status' => true, 
                 'data'   => $specialties
@@ -122,7 +127,7 @@ class HomeController extends Controller
         }
     }
 
-    
+ 
     public function showSpecialty($id)
     {
         try {
@@ -144,7 +149,6 @@ class HomeController extends Controller
         }
     }
 
-    
     public function findNearest(Request $request)
     {
         try {

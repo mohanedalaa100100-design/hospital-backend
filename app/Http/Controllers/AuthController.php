@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class AuthController extends Controller
@@ -98,10 +99,14 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
+    
         $request->validate(['phone' => 'required|string|exists:users,phone']);
 
         $user = User::where('phone', $request->phone)->first();
-        $otp  = rand(100000, 999999);
+        $otp  = rand(100000, 999999); 
+
+        
+        Log::info("OTP Code for phone " . $request->phone . " is: " . $otp);
 
         DB::table('otps')->updateOrInsert(
             ['email' => $user->email],
@@ -112,10 +117,10 @@ class AuthController extends Controller
             ]
         );
 
-    
         return response()->json([
             'status'  => true,
-            'message' => 'تم إرسال كود التحقق على رقم هاتفك'
+            'message' => 'تم إرسال كود التحقق على رقم هاتفك',
+            'code'    => $otp 
         ]);
     }
 
