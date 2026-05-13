@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Models\Clinic;
 
 
+
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -24,25 +25,29 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
-Route::get('/home-page', [HomeController::class, 'index']); 
-Route::get('/all-specialties', [HomeController::class, 'allSpecialties']); 
+
+Route::get('/home-page', [HomeController::class, 'index']);
+Route::get('/all-specialties', [HomeController::class, 'allSpecialties']);
 Route::get('/specialties/{id}', [HomeController::class, 'showSpecialty']);
 
+
 Route::prefix('hospitals')->group(function () {
-    Route::get('/nearest', [HomeController::class, 'findNearest']); 
+    Route::get('/nearest', [HomeController::class, 'findNearest']);
     Route::get('/search', [HomeController::class, 'search']);
-    Route::get('/', [HomeController::class, 'allHospitals']); 
+    Route::get('/', [HomeController::class, 'allHospitals']);
     Route::get('/{id}', [HomeController::class, 'show']);
 });
 
 Route::prefix('doctors')->group(function () {
-    Route::get('/', [DoctorController::class, 'index']); 
+    Route::get('/', [DoctorController::class, 'index']);
     Route::get('/{id}', [DoctorController::class, 'show']);
 });
 
+
 Route::prefix('clinics')->group(function () {
     Route::get('/', function () {
-        $clinics = Clinic::with(['hospital', 'specialty', 'doctors'])->paginate(20);
+        $clinics = Clinic::with(['hospital', 'specialty', 'doctors'])
+            ->paginate(20);
         return response()->json([
             'status' => true,
             'data'   => $clinics
@@ -50,7 +55,8 @@ Route::prefix('clinics')->group(function () {
     });
 
     Route::get('/{id}', function ($id) {
-        $clinic = Clinic::with(['hospital', 'specialty', 'doctors'])->find($id);
+        $clinic = Clinic::with(['hospital', 'specialty', 'doctors'])
+            ->find($id);
 
         if (!$clinic) {
             return response()->json([
@@ -66,66 +72,90 @@ Route::prefix('clinics')->group(function () {
     });
 });
 
+
 Route::prefix('emergency')->group(function () {
     Route::post('/quick-send', [EmergencyRequestController::class, 'quickSend']);
 });
 
-Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']);
+
 Route::post('/triage', [TriageController::class, 'assess']);
+
+
+Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']);
 
 
 
 Route::middleware('auth:sanctum')->group(function () {
+
     
     Route::get('/user', [AuthController::class, 'userProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    
     Route::prefix('medical-profile')->group(function () {
         Route::get('/', [MedicalProfileController::class, 'show']);
         Route::post('/', [MedicalProfileController::class, 'store']);
     });
 
+    
     Route::prefix('appointments')->group(function () {
+        
+        Route::get('/available-slots/{doctor_id}/{date}',
+            [AppointmentController::class, 'showAvailableSlots']);
+
+    
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
+
+        
+        Route::get('/{id}', [AppointmentController::class, 'show']);
+
+        
         Route::post('/book', [AppointmentController::class, 'store']);
+
+        
         Route::post('/{id}/pay', [AppointmentController::class, 'processPayment']);
+
+    
         Route::delete('/{id}', [AppointmentController::class, 'destroy']);
     });
 
+    
     Route::prefix('emergency')->group(function () {
         Route::get('/my-requests', [EmergencyRequestController::class, 'userRequests']);
     });
 
+   
 
     Route::prefix('admin')->middleware('admin')->group(function () {
+
         
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
         
-    
         Route::prefix('hospitals')->group(function () {
             Route::get('/', [HospitalAdminController::class, 'index']);
             Route::post('/', [HospitalAdminController::class, 'store']);
+            Route::get('{id}', [HospitalAdminController::class, 'show']);
             Route::put('{id}', [HospitalAdminController::class, 'update']);
             Route::delete('{id}', [HospitalAdminController::class, 'destroy']);
-            Route::get('{id}', [HospitalAdminController::class, 'show']);
         });
 
         
         Route::prefix('clinics')->group(function () {
             Route::get('/', [ClinicAdminController::class, 'index']);
             Route::post('/', [ClinicAdminController::class, 'store']);
+            Route::get('{id}', [ClinicAdminController::class, 'show']);
             Route::put('{id}', [ClinicAdminController::class, 'update']);
             Route::delete('{id}', [ClinicAdminController::class, 'destroy']);
-            Route::get('{id}', [ClinicAdminController::class, 'show']);
             Route::get('{id}/stats', [ClinicAdminController::class, 'stats']);
         });
 
         
         Route::prefix('appointments')->group(function () {
             Route::get('/', [AppointmentAdminController::class, 'index']);
+            Route::get('{id}', [AppointmentAdminController::class, 'show']);
             Route::put('{id}', [AppointmentAdminController::class, 'update']);
             Route::delete('{id}', [AppointmentAdminController::class, 'destroy']);
-            Route::get('{id}', [AppointmentAdminController::class, 'show']);
         });
     });
 });
