@@ -14,7 +14,11 @@ class HomeController extends Controller
     public function index()
     {
         try {
-            $specialties = Specialty::withCount('clinics')->get();
+        
+            $specialties = Specialty::with([
+                'clinics.hospital', 
+                'clinics.doctors'
+            ])->withCount('clinics')->get();
 
             $data = [
                 'hero_section'       => HeroSection::all(),
@@ -38,13 +42,13 @@ class HomeController extends Controller
         }
     }
 
-   
+ 
     public function allHospitals()
     {
         try {
             $hospitals = Hospital::where('is_active', true)
-                                ->with(['clinics.specialty', 'medicalServices']) 
-                                ->paginate(10); 
+                                ->with(['clinics.specialty', 'medicalServices', 'clinics.doctors']) 
+                                ->get(); 
 
             return response()->json([
                 'status' => true, 
@@ -56,7 +60,7 @@ class HomeController extends Controller
         }
     }
 
- 
+  
     public function search(Request $request)
     {
         try {
@@ -74,8 +78,8 @@ class HomeController extends Controller
                                   $sq->where('name', 'LIKE', "%{$queryText}%");
                               });
                         })
-                        ->with(['clinics.specialty', 'medicalServices'])
-                        ->paginate(10);
+                        ->with(['clinics.specialty', 'medicalServices', 'clinics.doctors'])
+                        ->get();
 
             return response()->json([
                 'status' => true, 
@@ -87,6 +91,7 @@ class HomeController extends Controller
         }
     }
 
+  
     public function show($id)
     {
         try {
@@ -106,16 +111,21 @@ class HomeController extends Controller
         }
     }
 
-  
+   
     public function allSpecialties()
     {
         try {
-       
-            $specialties = Specialty::with(['clinics.hospital' => function($hq) {
-                $hq->where('is_active', true);
-            }])
+            $specialties = Specialty::with([
+                'clinics' => function($q) {
+                    $q->whereHas('hospital', function($hq) {
+                        $hq->where('is_active', true);
+                    });
+                },
+                'clinics.hospital',
+                'clinics.doctors'  
+            ])
             ->withCount('clinics')
-            ->paginate(2);
+            ->get(); 
 
             return response()->json([
                 'status' => true, 
@@ -127,13 +137,16 @@ class HomeController extends Controller
         }
     }
 
- 
+  
     public function showSpecialty($id)
     {
         try {
-            $specialty = Specialty::with(['clinics.hospital' => function($q) {
-                $q->where('is_active', true);
-            }, 'clinics.doctors'])->find($id);
+            $specialty = Specialty::with([
+                'clinics.hospital' => function($q) {
+                    $q->where('is_active', true);
+                }, 
+                'clinics.doctors'
+            ])->find($id);
 
             if (!$specialty) {
                 return response()->json(['status' => false, 'message' => 'التخصص غير موجود'], 404, [], JSON_UNESCAPED_SLASHES);
@@ -149,6 +162,7 @@ class HomeController extends Controller
         }
     }
 
+    
     public function findNearest(Request $request)
     {
         try {
@@ -163,12 +177,12 @@ class HomeController extends Controller
                 (6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) AS distance",
                 [$userLat, $userLng, $userLat])
                 ->where('is_active', true)
-                ->with(['clinics.specialty', 'medicalServices'])
+                ->with(['clinics.specialty', 'medicalServices', 'clinics.doctors'])
                 ->orderBy('distance')
-                ->paginate(10)
-                ->through(function($hospital) {
+                ->get() 
+                ->map(function($hospital) {
                     $hospital->distance_km = round($hospital->distance, 1) . ' km';
-                    $hospital->eta_minutes = round(($hospital->distance / 30) * 60) . ' min';
+                    $hospital->eta_minutes = ceil(($hospital->distance / 30) * 60) . ' min drive';
                     return $hospital;
                 });
 
