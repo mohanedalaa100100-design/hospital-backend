@@ -74,7 +74,7 @@ class AuthController extends Controller
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status'  => false,
-                'message' => 'بيانات الدخول غير صحيحة'
+                'message' => 'Incorrect Registration Data '
             ], 401);
         }
 
