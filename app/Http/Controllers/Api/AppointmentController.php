@@ -18,7 +18,7 @@ class AppointmentController extends Controller
             'doctor_id'        => 'required|exists:doctors,id',
             'clinic_id'        => 'required|exists:clinics,id',
             'appointment_date' => 'required|date|after_or_equal:today',
-            'appointment_time' => 'required|string', // "10:00 AM"
+            'appointment_time' => 'required|string',
             'patient_name'     => 'required|string|max:255',
             'patient_phone'    => 'required|string|min:11',
             'notes'            => 'nullable|string',
@@ -89,14 +89,14 @@ class AppointmentController extends Controller
                 'doc_fees'         => $doc_fees,
                 'service_fees'     => $service_fees,
                 'total_amount'     => $total_amount,
-                'payment_method'   => null,
-                'status'           => 'pending',
+                'payment_method'   => 'clinic',
+                'status'           => 'confirmed',
                 'notes'            => $request->notes,
             ]);
 
             return response()->json([
                 'status'         => true,
-                'message'        => 'تم حجز الموعد بنجاح، يرجى اختيار طريقة الدفع لإتمام الطلب',
+              'message'        => 'تم تأكيد الحجز بنجاح.',
                 'appointment_id' => $appointment->id,
                 'total_amount'   => $total_amount,
                 'data'           => $appointment->load(['doctor', 'clinic.hospital'])
@@ -114,7 +114,6 @@ class AppointmentController extends Controller
    
     public function getAvailableSlots($doctorId, $date)
     {
-        
         $allSlots = [
             '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
             '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM',
@@ -123,14 +122,12 @@ class AppointmentController extends Controller
             '05:00 PM'
         ];
 
-        
         $bookedSlots = Appointment::where('doctor_id', $doctorId)
             ->where('appointment_date', $date)
             ->where('status', '!=', 'cancelled')
             ->pluck('appointment_time')
             ->toArray();
 
-        
         $availableSlots = array_diff($allSlots, $bookedSlots);
 
         return [
@@ -146,10 +143,7 @@ class AppointmentController extends Controller
     public function showAvailableSlots($doctorId, $date)
     {
         try {
-            
             $appointmentDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
-
-            
             Doctor::findOrFail($doctorId);
 
             $slots = $this->getAvailableSlots($doctorId, $appointmentDate);
@@ -170,65 +164,7 @@ class AppointmentController extends Controller
         }
     }
 
-  
-    public function processPayment(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|in:clinic,card,wallet,insurance',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ], 422, [], JSON_UNESCAPED_SLASHES);
-        }
-
-        try {
-            $appointment = Appointment::where('user_id', Auth::id())->findOrFail($id);
-
-            
-            if ($appointment->status == 'cancelled') {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'لا يمكن الدفع لحجز ملغي'
-                ], 400, [], JSON_UNESCAPED_SLASHES);
-            }
-
-            
-            if ($appointment->status == 'paid' || $appointment->status == 'confirmed') {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'تم الدفع لهذا الموعد بالفعل'
-                ], 400, [], JSON_UNESCAPED_SLASHES);
-            }
-
-            
-            $newStatus = ($request->payment_method == 'clinic') ? 'pending' : 'confirmed';
-
-            $appointment->update([
-                'payment_method' => $request->payment_method,
-                'status'         => $newStatus,
-                'paid_at'        => now(),
-            ]);
-
-            return response()->json([
-                'status'  => true,
-                'message' => 'تم تحديد طريقة الدفع وتأكيد الحجز بنجاح',
-                'appointment_status' => $newStatus,
-                'data'    => $appointment->load(['doctor', 'clinic.hospital'])
-            ], 200, [], JSON_UNESCAPED_SLASHES);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'فشل معالجة الدفع',
-                'error'   => $e->getMessage()
-            ], 500, [], JSON_UNESCAPED_SLASHES);
-        }
-    }
-
-   
     public function myAppointments()
     {
         $appointments = Appointment::with(['doctor', 'clinic.hospital'])
@@ -276,7 +212,6 @@ class AppointmentController extends Controller
             ], 404, [], JSON_UNESCAPED_SLASHES);
         }
 
-        
         if ($appointment->status === 'cancelled') {
             return response()->json([
                 'status'  => false,
@@ -284,7 +219,6 @@ class AppointmentController extends Controller
             ], 400, [], JSON_UNESCAPED_SLASHES);
         }
 
-        
         $appointmentDateTime = \Carbon\Carbon::parse(
             $appointment->appointment_date . ' ' . $appointment->appointment_time
         );

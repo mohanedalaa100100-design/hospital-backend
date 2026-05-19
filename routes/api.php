@@ -38,6 +38,7 @@ Route::prefix('hospitals')->group(function () {
     Route::get('/{id}', [HomeController::class, 'show']);
 });
 
+
 Route::prefix('doctors')->group(function () {
     Route::get('/', [DoctorController::class, 'index']);
     Route::get('/{id}', [DoctorController::class, 'show']);
@@ -77,17 +78,14 @@ Route::prefix('emergency')->group(function () {
     Route::post('/quick-send', [EmergencyRequestController::class, 'quickSend']);
 });
 
-
 Route::post('/triage', [TriageController::class, 'assess']);
-
-
 Route::post('/ai-diagnosis', [AiDiagnosisController::class, 'diagnose']);
 
 
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    
+
     Route::get('/user', [AuthController::class, 'userProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -100,10 +98,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::prefix('appointments')->group(function () {
         
+        
         Route::get('/available-slots/{doctor_id}/{date}',
             [AppointmentController::class, 'showAvailableSlots']);
 
-    
+        
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
 
         
@@ -113,9 +112,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/book', [AppointmentController::class, 'store']);
 
         
-        Route::post('/{id}/pay', [AppointmentController::class, 'processPayment']);
-
-    
         Route::delete('/{id}', [AppointmentController::class, 'destroy']);
     });
 
@@ -124,11 +120,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-requests', [EmergencyRequestController::class, 'userRequests']);
     });
 
-   
 
+  
     Route::prefix('admin')->middleware('admin')->group(function () {
 
-        
+    
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
 
         
